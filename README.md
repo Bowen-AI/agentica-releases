@@ -85,7 +85,11 @@ under `docs/`).
 
 Before tagging, confirm the published `.app` / `.zip`:
 
-- `ElectronAsarIntegrity` hash in `Info.plist` matches `shasum -a 256 …/app.asar`
+- `ElectronAsarIntegrity` matches the asar **header** SHA-256 (not a full-file
+  `shasum`). Use: `node scripts/verify-asar-integrity.mjs path/to/Agentica.app`
+  from the Agentica repo after a local/CI pack.
+- `afterPack` wraps `Contents/MacOS/Agentica` so `ELECTRON_RUN_AS_NODE` inherited
+  from Cursor/VS Code shells cannot silence the app.
 - `xattr -dr com.apple.quarantine` is what end users get via `install.sh` (unsigned)
 
 ## Defaults after install

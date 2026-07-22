@@ -104,6 +104,24 @@ say "${B}  Agentica installer${R}"
 say "${DIM}  ${OS} · ${ARCH} · ${VERSION} · model ${DEFAULT_MODEL}${R}"
 say ""
 
+# ---- disk space helpers (unit-testable via scripts/test-install-lib.sh) -----
+# Min free space: ~600 MB for the app archive, ~5 GB before model pull.
+require_free_kb() {
+  # $1 = path to check  $2 = min KB  $3 = what for (message)
+  _path="$1"; _need="$2"; _why="$3"
+  _avail="$(df -k "$_path" 2>/dev/null | awk 'NR==2 {print $4}')"
+  if [ -z "${_avail:-}" ]; then
+    warn "Could not read free disk for $_path — continuing"
+    return 0
+  fi
+  if [ "$_avail" -lt "$_need" ]; then
+    _have_h="$(df -h "$_path" 2>/dev/null | awk 'NR==2 {print $4}')"
+    _need_h="$((_need / 1024 / 1024)) GB"
+    die "Need ~${_need_h} free disk ${_why} (only ${_have_h:-unknown} free under $_path). Free space and re-run."
+  fi
+  return 0
+}
+
 if command -v curl >/dev/null 2>&1; then
   fetch() { curl -fL --progress-bar -o "$2" "$1"; }
 elif command -v wget >/dev/null 2>&1; then
@@ -111,6 +129,9 @@ elif command -v wget >/dev/null 2>&1; then
 else
   die "Need curl or wget."
 fi
+
+# App zip/AppImage is ~450 MB; require ~600 MB before download to avoid ENOSPC mid-fetch.
+require_free_kb "${TMPDIR:-/tmp}" 600000 "to download the Agentica app"
 
 TMP="$(mktemp -d "${TMPDIR:-/tmp}/agentica.XXXXXX")"
 cleanup() { rm -rf "$TMP"; }
@@ -166,12 +187,26 @@ if [ "$OS" = "mac" ]; then
   ditto "$APP_SRC" "$APP" 2>/dev/null || cp -R "$APP_SRC" "$APP"
   xattr -dr com.apple.quarantine "$APP" 2>/dev/null || true
   ok "Installed to $APP (quarantine cleared)"
-  printf '#!/bin/sh\nexec open -a "%s" "$@"\n' "$APP" > "$BIN_DIR/agentica"
+  # Launch via `open -a` (LaunchServices) and scrub ELECTRON_RUN_AS_NODE so
+  # Cursor/agent shells cannot turn the Electron binary into a silent no-op.
+  cat > "$BIN_DIR/agentica" <<EOF
+#!/bin/sh
+unset ELECTRON_RUN_AS_NODE
+unset ELECTRON_NO_ASAR
+unset ELECTRON_FORCE_IS_PACKAGED
+exec open -a "$APP" "\$@"
+EOF
   chmod +x "$BIN_DIR/agentica"
   add_to_path "$BIN_DIR"
 else
   step "Installing app"
   INSTALL_DIR="${AGENTICA_INSTALL_DIR:-$HOME/.local/share/agentica}"
+  # Prefer a writable default; fall back if ~/.local/share is missing/unwritable.
+  if ! mkdir -p "$INSTALL_DIR" 2>/dev/null; then
+    INSTALL_DIR="$HOME/agentica"
+    warn "~/.local/share/agentica not writable — using $INSTALL_DIR"
+    mkdir -p "$INSTALL_DIR" || die "Cannot create install dir $INSTALL_DIR"
+  fi
   rm -rf "$INSTALL_DIR"
   mkdir -p "$INSTALL_DIR"
   if [ "$ASSET_KIND" = "appimage" ] || printf '%s' "$ASSET" | grep -q '\.AppImage$'; then
@@ -180,6 +215,9 @@ else
     chmod +x "$APPIMAGE"
     cat > "$BIN_DIR/agentica" <<EOF
 #!/bin/sh
+unset ELECTRON_RUN_AS_NODE
+unset ELECTRON_NO_ASAR
+unset ELECTRON_FORCE_IS_PACKAGED
 exec "$APPIMAGE" --no-sandbox "\$@"
 EOF
   else
@@ -193,6 +231,9 @@ EOF
     chmod +x "$INSTALL_DIR/agentica"
     cat > "$BIN_DIR/agentica" <<EOF
 #!/bin/sh
+unset ELECTRON_RUN_AS_NODE
+unset ELECTRON_NO_ASAR
+unset ELECTRON_FORCE_IS_PACKAGED
 exec "$INSTALL_DIR/agentica" --no-sandbox "\$@"
 EOF
   fi
@@ -253,13 +294,11 @@ pull_default_model() {
     return 0
   fi
   step "Pulling default chat model ${B}$DEFAULT_MODEL${R} (one-time, ~4 GB)"
-  # ollama pull fails with "no space left on device" if the disk is nearly full.
-  avail_kb="$(df -k "$HOME" 2>/dev/null | awk 'NR==2 {print $4}')"
-  if [ -n "${avail_kb:-}" ] && [ "$avail_kb" -lt 5000000 ]; then
-    avail_h="$(df -h "$HOME" 2>/dev/null | awk 'NR==2 {print $4}')"
-    die "Need ~5 GB free disk to pull $DEFAULT_MODEL (only ${avail_h:-unknown} free under \$HOME). Free space and re-run, or set AGENTICA_SKIP_MODEL=1 and pull later."
+  # Models land under $HOME/.ollama by default — check that volume before download.
+  require_free_kb "$HOME" 5000000 "to pull $DEFAULT_MODEL (or set AGENTICA_SKIP_MODEL=1)"
+  if ! ollama pull "$DEFAULT_MODEL"; then
+    die "ollama pull $DEFAULT_MODEL failed. If you see 'no space left on device' / ENOSPC, free ~5 GB under \$HOME and re-run (or AGENTICA_SKIP_MODEL=1)."
   fi
-  ollama pull "$DEFAULT_MODEL" || die "ollama pull $DEFAULT_MODEL failed (check disk space if you see 'no space left on device')"
   ok "Model ready: $DEFAULT_MODEL"
 }
 
@@ -278,6 +317,7 @@ say ""
 if [ "${AGENTICA_SKIP_OPEN:-0}" != "1" ]; then
   step "Opening Agentica"
   if [ "$OS" = "mac" ]; then
+    unset ELECTRON_RUN_AS_NODE ELECTRON_NO_ASAR ELECTRON_FORCE_IS_PACKAGED
     open -a "$APP"
   else
     "$BIN_DIR/agentica" >/dev/null 2>&1 &
