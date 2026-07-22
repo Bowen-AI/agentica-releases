@@ -56,18 +56,43 @@ if [ "$OS" = "mac" ] && [ "$ARCH" = "x64" ] && \
   ARCH="arm64"
 fi
 
+# Prefer AppImage on Linux x64 when published; fall back to tar.gz.
+ASSET=""
+ASSET_KIND=""
 if [ "$OS" = "mac" ]; then
   ASSET="Agentica-mac-${ARCH}.zip"
+  ASSET_KIND="zip"
 else
-  ASSET="Agentica-linux-${ARCH}.tar.gz"
+  if [ "$ARCH" = "x64" ]; then
+    ASSET="Agentica-linux-x64.AppImage"
+    ASSET_KIND="appimage"
+  else
+    ASSET="Agentica-linux-${ARCH}.tar.gz"
+    ASSET_KIND="targz"
+  fi
 fi
+
+asset_url() {
+  if [ "$VERSION" = "latest" ]; then
+    printf 'https://github.com/%s/releases/latest/download/%s' "$REPO" "$1"
+  else
+    printf 'https://github.com/%s/releases/download/%s/%s' "$REPO" "$VERSION" "$1"
+  fi
+}
 
 if [ -n "${AGENTICA_URL:-}" ]; then
   URL="$AGENTICA_URL"
-elif [ "$VERSION" = "latest" ]; then
-  URL="https://github.com/$REPO/releases/latest/download/$ASSET"
 else
-  URL="https://github.com/$REPO/releases/download/$VERSION/$ASSET"
+  URL="$(asset_url "$ASSET")"
+  # If AppImage is missing from the release, fall back to tar.gz before failing.
+  if [ "$ASSET_KIND" = "appimage" ]; then
+    if ! curl -fsSIL --max-time 15 "$URL" >/dev/null 2>&1; then
+      warn "AppImage not published yet — trying tar.gz"
+      ASSET="Agentica-linux-${ARCH}.tar.gz"
+      ASSET_KIND="targz"
+      URL="$(asset_url "$ASSET")"
+    fi
+  fi
 fi
 
 say ""
@@ -142,19 +167,31 @@ if [ "$OS" = "mac" ]; then
   add_to_path "$BIN_DIR"
 else
   step "Installing app"
-  EX="$TMP/x"; mkdir -p "$EX"
-  tar -xzf "$PKG" -C "$EX"
-  TOP="$(find "$EX" -mindepth 1 -maxdepth 1 -type d | head -n1)"
-  [ -n "$TOP" ] && [ -x "$TOP/agentica" ] || die "agentica binary missing in archive."
   INSTALL_DIR="${AGENTICA_INSTALL_DIR:-$HOME/.local/share/agentica}"
   rm -rf "$INSTALL_DIR"
-  mkdir -p "$(dirname "$INSTALL_DIR")"
-  mv "$TOP" "$INSTALL_DIR"
-  chmod +x "$INSTALL_DIR/agentica"
-  cat > "$BIN_DIR/agentica" <<EOF
+  mkdir -p "$INSTALL_DIR"
+  if [ "$ASSET_KIND" = "appimage" ] || printf '%s' "$ASSET" | grep -q '\.AppImage$'; then
+    APPIMAGE="$INSTALL_DIR/Agentica.AppImage"
+    cp "$PKG" "$APPIMAGE"
+    chmod +x "$APPIMAGE"
+    cat > "$BIN_DIR/agentica" <<EOF
+#!/bin/sh
+exec "$APPIMAGE" --no-sandbox "\$@"
+EOF
+  else
+    EX="$TMP/x"; mkdir -p "$EX"
+    tar -xzf "$PKG" -C "$EX"
+    TOP="$(find "$EX" -mindepth 1 -maxdepth 1 -type d | head -n1)"
+    [ -n "$TOP" ] && [ -x "$TOP/agentica" ] || die "agentica binary missing in archive."
+    rm -rf "$INSTALL_DIR"
+    mkdir -p "$(dirname "$INSTALL_DIR")"
+    mv "$TOP" "$INSTALL_DIR"
+    chmod +x "$INSTALL_DIR/agentica"
+    cat > "$BIN_DIR/agentica" <<EOF
 #!/bin/sh
 exec "$INSTALL_DIR/agentica" --no-sandbox "\$@"
 EOF
+  fi
   chmod +x "$BIN_DIR/agentica"
   add_to_path "$BIN_DIR"
   ok "Installed to $INSTALL_DIR"
