@@ -7,11 +7,15 @@
 #
 # What it does:
 #   1. Downloads the latest mac/linux build from Bowen-AI/agentica-releases
-#   2. Installs the app (/Applications on macOS)
-#   3. Clears Gatekeeper quarantine on macOS
+#   2. Installs the app (/Applications on macOS; AppImage under ~/.local/share/agentica on Linux)
+#   3. Clears Gatekeeper quarantine on macOS (builds are unsigned / not notarized)
 #   4. Ensures Ollama is installed and running
-#   5. Pulls the default chat model (qwen3.5:4b-mlx) if missing
-#   6. Opens Agentica — voice STT/TTS weights auto-download on first app start
+#   5. Pulls the default chat model (qwen3.5:4b-mlx) if missing — needs ~5 GB free disk
+#   6. Opens Agentica — voice STT/TTS weights auto-download on first app start (~0.5 GB)
+#
+# From-scratch note (verified on macOS arm64): after this script finishes and the
+# app window opens, Chat works immediately if the model pull succeeded. Voice
+# becomes ready after the first-start weight download (or POST /api/voice/install).
 #
 # Env overrides:
 #   AGENTICA_VERSION=v0.3.0     pin a release tag (default: latest)
@@ -248,8 +252,14 @@ pull_default_model() {
     ok "A matching model is already installed for ${DEFAULT_MODEL%%:*}"
     return 0
   fi
-  step "Pulling default chat model ${B}$DEFAULT_MODEL${R} (one-time, a few GB)"
-  ollama pull "$DEFAULT_MODEL" || die "ollama pull $DEFAULT_MODEL failed"
+  step "Pulling default chat model ${B}$DEFAULT_MODEL${R} (one-time, ~4 GB)"
+  # ollama pull fails with "no space left on device" if the disk is nearly full.
+  avail_kb="$(df -k "$HOME" 2>/dev/null | awk 'NR==2 {print $4}')"
+  if [ -n "${avail_kb:-}" ] && [ "$avail_kb" -lt 5000000 ]; then
+    avail_h="$(df -h "$HOME" 2>/dev/null | awk 'NR==2 {print $4}')"
+    die "Need ~5 GB free disk to pull $DEFAULT_MODEL (only ${avail_h:-unknown} free under \$HOME). Free space and re-run, or set AGENTICA_SKIP_MODEL=1 and pull later."
+  fi
+  ollama pull "$DEFAULT_MODEL" || die "ollama pull $DEFAULT_MODEL failed (check disk space if you see 'no space left on device')"
   ok "Model ready: $DEFAULT_MODEL"
 }
 

@@ -15,12 +15,16 @@ That command:
 
 1. Downloads the latest macOS Apple Silicon or Linux x64 build from this repo  
 2. Installs the app (`/Applications` on macOS; AppImage under `~/.local/share/agentica` on Linux)  
-3. Clears Gatekeeper quarantine on macOS  
+3. Clears Gatekeeper quarantine on macOS (builds are unsigned / not notarized)  
 4. Installs/starts **Ollama** if needed  
-5. Pulls the default chat model **`qwen3.5:4b-mlx`**  
-6. Opens Agentica — voice STT/TTS weights auto-download on first app start  
+5. Pulls the default chat model **`qwen3.5:4b-mlx`** (~4 GB; needs ~5 GB free disk)  
+6. Opens Agentica — voice STT/TTS weights auto-download on first app start (~0.5 GB)  
 
-When the window appears you can send a Chat turn immediately.
+When the window appears you can send a Chat turn immediately **if** the model
+pull succeeded. If `ollama pull` fails with “no space left on device”, free disk
+and re-run (or `AGENTICA_SKIP_MODEL=1` then pull later). Voice is ready after
+the first-start download (Whisper via MLX cache + Kokoro/Piper under
+`~/.local/share/agentica/voice`).
 
 Uninstall: `agentica-uninstall`
 
@@ -74,6 +78,15 @@ gh workflow run "Publish Linux" --ref main -f tag=vX.Y.Z -R Bowen-AI/Agentica
 GitHub Pages serves [`docs/`](docs/). OS detection + download CTAs are driven by
 `releases/latest` — publishing new assets is enough; no Pages rebuild required
 for binary updates. Edit `docs/` and push `main` here for landing-page changes.
+Keep root `install.sh` and `docs/install.sh` identical (Pages serves the copy
+under `docs/`).
+
+### Packaging checks (macOS)
+
+Before tagging, confirm the published `.app` / `.zip`:
+
+- `ElectronAsarIntegrity` hash in `Info.plist` matches `shasum -a 256 …/app.asar`
+- `xattr -dr com.apple.quarantine` is what end users get via `install.sh` (unsigned)
 
 ## Defaults after install
 

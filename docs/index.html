@@ -44,7 +44,7 @@
   <section class="section" id="install">
     <div class="wrap narrow">
       <h2>Install</h2>
-      <p class="section-lede">One command downloads the latest build, clears Gatekeeper quarantine on macOS, starts Ollama, pulls <code>qwen3.5:4b-mlx</code>, and opens Agentica.</p>
+      <p class="section-lede">One command downloads the latest build, clears Gatekeeper quarantine on macOS, starts Ollama, pulls <code>qwen3.5:4b-mlx</code> (~4&nbsp;GB — keep ~5&nbsp;GB free), and opens Agentica.</p>
       <div class="cmd">
         <code id="oneliner">curl -fsSL https://bowen-ai.github.io/agentica-releases/install.sh | bash</code>
         <button type="button" class="copy" id="copy-btn" aria-label="Copy install command">Copy</button>
@@ -64,11 +64,12 @@
   <section class="section" id="included">
     <div class="wrap narrow">
       <h2>What’s included</h2>
-      <p class="section-lede">Desktop app and bundled backend for Chat, Voice, Jobs, and History. Chat weights and speech models download automatically so first launch works right away.</p>
+      <p class="section-lede">Desktop app and bundled backend for Chat, Voice, Jobs, and History. After install, Chat works once the default model is on disk; voice weights download on first app start.</p>
       <ul class="plain">
-        <li>Default chat model: <code>qwen3.5:4b-mlx</code> (via install script)</li>
-        <li>Local voice: Whisper + Kokoro (auto on first app start)</li>
-        <li>macOS builds are unsigned — the one-liner clears quarantine</li>
+        <li>Default chat model: <code>qwen3.5:4b-mlx</code> (via install script; needs ~5&nbsp;GB free)</li>
+        <li>Local voice: Whisper + Kokoro/Piper (auto on first app start, ~0.5&nbsp;GB)</li>
+        <li>macOS builds are unsigned / not notarized — the one-liner clears quarantine</li>
+        <li>Linux x64: AppImage and tar.gz on the latest GitHub release</li>
       </ul>
     </div>
   </section>
