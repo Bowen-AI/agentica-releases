@@ -79,7 +79,11 @@
   }
 
   function publishedHas(published, file) {
-    return !!(published && published[file]);
+    // null/undefined => release metadata not loaded yet (optimistic: allow known mac links)
+    if (published == null) {
+      return file === "Agentica-mac-arm64.dmg" || file === "Agentica-mac-arm64.zip";
+    }
+    return !!published[file];
   }
 
   function btn(href, label, primary, disabled) {
@@ -316,10 +320,9 @@
 
   var d = detect();
   wireCopy();
+  // Optimistic paint before API (null = unknown; prefer shipping mac arm64 links).
+  paint(d.os, d.arch, d.archConfident, null);
   loadPublished().then(function (published) {
     paint(d.os, d.arch, d.archConfident, published);
   });
-  // Optimistic first paint with empty map → disabled until API returns,
-  // unless fallback already set.
-  paint(d.os, d.arch, d.archConfident, window.__agenticaPublished || {});
 })();
