@@ -1,0 +1,105 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Agentica — download</title>
+<meta name="description" content="Download Agentica: private, tool-using AI on machines you own. Chat, local voice, and parallel jobs." />
+<meta name="theme-color" content="#0d1117" />
+<link rel="stylesheet" href="style.css" />
+</head>
+<body>
+<header>
+  <div class="wrap nav">
+    <a class="logo" href="./">Agentica<span class="dot"></span></a>
+    <nav>
+      <a href="#install">Install</a>
+      <a href="#platforms">Downloads</a>
+      <a href="https://github.com/Bowen-AI/agentica-releases/releases/latest">Releases</a>
+      <a href="https://agenticaai.vercel.app/">Docs site</a>
+      <a href="https://github.com/Bowen-AI/AgenticLocal">Engine</a>
+    </nav>
+  </div>
+</header>
+
+<section class="hero">
+  <div class="wrap">
+    <h1>Agentica</h1>
+    <p class="lede">
+      Private, open-weight agents on the computers you already own.
+      Every Chat and Voice turn is agentic — tools, progress, and a final result.
+    </p>
+    <div class="cta">
+      <a class="btn primary" href="#install">Install</a>
+      <a class="btn" id="dl-mac" href="https://github.com/Bowen-AI/agentica-releases/releases/latest/download/Agentica-mac-arm64.dmg">macOS arm64 DMG</a>
+      <a class="btn" id="dl-linux" href="https://github.com/Bowen-AI/agentica-releases/releases/latest/download/Agentica-linux-x64.AppImage">Linux x64 AppImage</a>
+    </div>
+    <p class="sub">Latest builds publish to
+      <a href="https://github.com/Bowen-AI/agentica-releases/releases/latest">GitHub Releases</a>.
+      macOS builds are unsigned — see Gatekeeper notes below.
+    </p>
+  </div>
+</section>
+
+<section id="install">
+  <div class="wrap">
+    <h2>Install in one line</h2>
+    <pre class="code"><code>curl -fsSL https://agenticaai.vercel.app/install.sh | bash</code></pre>
+    <p>Detects macOS or Linux, downloads from this repo’s <code>latest</code> release, and adds an <code>agentica</code> launcher. On Windows 11, use WSLg.</p>
+    <h3>First run</h3>
+    <ol>
+      <li>Install <a href="https://ollama.com">Ollama</a> and pull a small model (<code>ollama pull qwen3.5:4b-mlx</code>).</li>
+      <li><strong>Chat</strong> — pick a workspace folder; ask the agent to create a file and verify it.</li>
+      <li><strong>Voice</strong> — allow the mic; first launch may download speech weights under <code>~/.local/share/agentica/voice</code>.</li>
+      <li><strong>Jobs</strong> — draft a plan, submit to Local, watch status and logs.</li>
+    </ol>
+  </div>
+</section>
+
+<section id="platforms">
+  <div class="wrap">
+    <h2>Manual download</h2>
+    <table>
+      <thead><tr><th>Platform</th><th>Asset</th></tr></thead>
+      <tbody>
+        <tr>
+          <td>macOS · Apple Silicon</td>
+          <td><a href="https://github.com/Bowen-AI/agentica-releases/releases/latest/download/Agentica-mac-arm64.dmg">Agentica-mac-arm64.dmg</a>
+            · <a href="https://github.com/Bowen-AI/agentica-releases/releases/latest/download/Agentica-mac-arm64.zip">.zip</a></td>
+        </tr>
+        <tr>
+          <td>Linux · x64</td>
+          <td><a href="https://github.com/Bowen-AI/agentica-releases/releases/latest/download/Agentica-linux-x64.AppImage">AppImage</a>
+            · <a href="https://github.com/Bowen-AI/agentica-releases/releases/latest/download/Agentica-linux-x64.tar.gz">.tar.gz</a></td>
+        </tr>
+      </tbody>
+    </table>
+    <h3>macOS Gatekeeper</h3>
+    <p>Builds are not notarized. If macOS blocks the app: <strong>right-click → Open</strong>, or
+      <strong>System Settings → Privacy &amp; Security → Open Anyway</strong>.</p>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <h2>What’s included</h2>
+    <ul>
+      <li>Agentic Chat with independent model vs workspace machines (local / SSH).</li>
+      <li>Local voice: Silero VAD → Whisper → agent loop → Kokoro TTS.</li>
+      <li>Parallel tracked Jobs on local, SSH, or SLURM workers.</li>
+      <li>Deletable text History (no microphone audio stored).</li>
+    </ul>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap">
+    <p>
+      <a href="https://github.com/Bowen-AI/agentica-releases">agentica-releases</a>
+      · <a href="https://agenticaai.vercel.app/">agenticaai.vercel.app</a>
+      · <a href="https://github.com/Bowen-AI/AgenticLocal">AgenticLocal</a>
+    </p>
+  </div>
+</footer>
+</body>
+</html>
