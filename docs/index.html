@@ -3,103 +3,89 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Agentica — download</title>
-<meta name="description" content="Download Agentica: private, tool-using AI on machines you own. Chat, local voice, and parallel jobs." />
-<meta name="theme-color" content="#0d1117" />
+<title>Agentica</title>
+<meta name="description" content="Install Agentica — private agents on machines you own. One command installs the app, pulls the default model, and opens Chat ready to use." />
+<meta name="theme-color" content="#e8eee9" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Source+Sans+3:wght@400;500;600;700&family=Syne:wght@600;700;800&display=swap" rel="stylesheet" />
 <link rel="stylesheet" href="style.css" />
 </head>
 <body>
-<header>
-  <div class="wrap nav">
-    <a class="logo" href="./">Agentica<span class="dot"></span></a>
+<div class="atmosphere" aria-hidden="true"></div>
+
+<header class="top">
+  <div class="wrap bar">
+    <a class="brand-nav" href="#top">Agentica</a>
     <nav>
       <a href="#install">Install</a>
-      <a href="#platforms">Downloads</a>
-      <a href="https://github.com/Bowen-AI/agentica-releases/releases/latest">Releases</a>
-      <a href="https://agenticaai.vercel.app/">Docs site</a>
-      <a href="https://github.com/Bowen-AI/AgenticLocal">Engine</a>
+      <a href="#platforms">Platforms</a>
+      <a href="#included">Included</a>
+      <a href="https://github.com/Bowen-AI/agentica-releases/releases/latest" rel="noopener">Releases</a>
     </nav>
   </div>
 </header>
 
-<section class="hero">
-  <div class="wrap">
-    <h1>Agentica</h1>
-    <p class="lede">
-      Private, open-weight agents on the computers you already own.
-      Every Chat and Voice turn is agentic — tools, progress, and a final result.
-    </p>
-    <div class="cta">
-      <a class="btn primary" href="#install">Install</a>
-      <a class="btn" id="dl-mac" href="https://github.com/Bowen-AI/agentica-releases/releases/latest/download/Agentica-mac-arm64.dmg">macOS arm64 DMG</a>
-      <a class="btn" id="dl-linux" href="https://github.com/Bowen-AI/agentica-releases/releases/latest/download/Agentica-linux-x64.AppImage">Linux x64 AppImage</a>
+<main id="top">
+  <section class="hero">
+    <div class="wrap hero-inner">
+      <p class="brand reveal">Agentica</p>
+      <h1 class="reveal delay-1">Agents on machines you already own.</h1>
+      <p class="lede reveal delay-2">
+        Private, tool-using Chat and Voice on local, SSH, or SLURM hardware — with a default model ready after install.
+      </p>
+
+      <p class="detect reveal delay-3" id="detect-label">Detecting your system…</p>
+      <div class="cta reveal delay-3" id="primary-cta"></div>
+      <ul class="alt-inline reveal delay-4" id="alt-list"></ul>
     </div>
-    <p class="sub">Latest builds publish to
-      <a href="https://github.com/Bowen-AI/agentica-releases/releases/latest">GitHub Releases</a>.
-      macOS builds are unsigned — see Gatekeeper notes below.
-    </p>
-  </div>
-</section>
+  </section>
 
-<section id="install">
-  <div class="wrap">
-    <h2>Install in one line</h2>
-    <pre class="code"><code>curl -fsSL https://agenticaai.vercel.app/install.sh | bash</code></pre>
-    <p>Detects macOS or Linux, downloads from this repo’s <code>latest</code> release, and adds an <code>agentica</code> launcher. On Windows 11, use WSLg.</p>
-    <h3>First run</h3>
-    <ol>
-      <li>Install <a href="https://ollama.com">Ollama</a> and pull a small model (<code>ollama pull qwen3.5:4b-mlx</code>).</li>
-      <li><strong>Chat</strong> — pick a workspace folder; ask the agent to create a file and verify it.</li>
-      <li><strong>Voice</strong> — allow the mic; first launch may download speech weights under <code>~/.local/share/agentica/voice</code>.</li>
-      <li><strong>Jobs</strong> — draft a plan, submit to Local, watch status and logs.</li>
-    </ol>
-  </div>
-</section>
+  <section class="section" id="install">
+    <div class="wrap narrow">
+      <h2>Install</h2>
+      <p class="section-lede">One command downloads the latest build, clears Gatekeeper quarantine on macOS, starts Ollama, pulls <code>qwen3.5:4b-mlx</code>, and opens Agentica.</p>
+      <div class="cmd">
+        <code id="oneliner">curl -fsSL https://bowen-ai.github.io/agentica-releases/install.sh | bash</code>
+        <button type="button" class="copy" id="copy-btn" aria-label="Copy install command">Copy</button>
+      </div>
+      <p class="hint" id="copy-status" hidden>Copied.</p>
+    </div>
+  </section>
 
-<section id="platforms">
-  <div class="wrap">
-    <h2>Manual download</h2>
-    <table>
-      <thead><tr><th>Platform</th><th>Asset</th></tr></thead>
-      <tbody>
-        <tr>
-          <td>macOS · Apple Silicon</td>
-          <td><a href="https://github.com/Bowen-AI/agentica-releases/releases/latest/download/Agentica-mac-arm64.dmg">Agentica-mac-arm64.dmg</a>
-            · <a href="https://github.com/Bowen-AI/agentica-releases/releases/latest/download/Agentica-mac-arm64.zip">.zip</a></td>
-        </tr>
-        <tr>
-          <td>Linux · x64</td>
-          <td><a href="https://github.com/Bowen-AI/agentica-releases/releases/latest/download/Agentica-linux-x64.AppImage">AppImage</a>
-            · <a href="https://github.com/Bowen-AI/agentica-releases/releases/latest/download/Agentica-linux-x64.tar.gz">.tar.gz</a></td>
-        </tr>
-      </tbody>
-    </table>
-    <h3>macOS Gatekeeper</h3>
-    <p>Builds are not notarized. If macOS blocks the app: <strong>right-click → Open</strong>, or
-      <strong>System Settings → Privacy &amp; Security → Open Anyway</strong>.</p>
-  </div>
-</section>
+  <section class="section" id="platforms">
+    <div class="wrap narrow">
+      <h2>Platforms</h2>
+      <p class="section-lede">Links follow the latest GitHub release. Missing builds are labeled — never a silent 404.</p>
+      <ul class="platform-list" id="platform-list"></ul>
+    </div>
+  </section>
 
-<section>
-  <div class="wrap">
-    <h2>What’s included</h2>
-    <ul>
-      <li>Agentic Chat with independent model vs workspace machines (local / SSH).</li>
-      <li>Local voice: Silero VAD → Whisper → agent loop → Kokoro TTS.</li>
-      <li>Parallel tracked Jobs on local, SSH, or SLURM workers.</li>
-      <li>Deletable text History (no microphone audio stored).</li>
-    </ul>
-  </div>
-</section>
+  <section class="section" id="included">
+    <div class="wrap narrow">
+      <h2>What’s included</h2>
+      <p class="section-lede">Desktop app and bundled backend for Chat, Voice, Jobs, and History. Chat weights and speech models download automatically so first launch works right away.</p>
+      <ul class="plain">
+        <li>Default chat model: <code>qwen3.5:4b-mlx</code> (via install script)</li>
+        <li>Local voice: Whisper + Kokoro (auto on first app start)</li>
+        <li>macOS builds are unsigned — the one-liner clears quarantine</li>
+      </ul>
+    </div>
+  </section>
+</main>
 
-<footer>
-  <div class="wrap">
-    <p>
-      <a href="https://github.com/Bowen-AI/agentica-releases">agentica-releases</a>
-      · <a href="https://agenticaai.vercel.app/">agenticaai.vercel.app</a>
-      · <a href="https://github.com/Bowen-AI/AgenticLocal">AgenticLocal</a>
-    </p>
+<footer class="foot">
+  <div class="wrap bar">
+    <span>Agentica releases</span>
+    <nav>
+      <a href="https://github.com/Bowen-AI/agentica-releases" rel="noopener">GitHub</a>
+      <a href="https://github.com/Bowen-AI/agentica-releases/releases/latest" rel="noopener">Latest release</a>
+      <a href="https://github.com/Bowen-AI/AgenticLocal" rel="noopener">Engine</a>
+      <a href="https://agenticaai.vercel.app/" rel="noopener">Docs site</a>
+    </nav>
   </div>
 </footer>
+
+<script src="site.js"></script>
 </body>
 </html>
