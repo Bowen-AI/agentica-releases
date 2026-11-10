@@ -1,326 +1,210 @@
-#!/bin/sh
-# Agentica — one-line install that leaves Chat ready to use.
-#
-#   curl -fsSL https://bowen-ai.github.io/agentica-releases/install.sh | bash
-#
-# Also works from the repo root README / GitHub Releases page.
-#
-# What it does:
-#   1. Downloads the latest mac/linux build from Bowen-AI/agentica-releases
-#   2. Installs the app (/Applications on macOS; AppImage under ~/.local/share/agentica on Linux)
-#   3. Clears Gatekeeper quarantine on macOS (builds are unsigned / not notarized)
-#   4. Ensures Ollama is installed and running
-#   5. Pulls the default chat model (qwen3.5:4b-mlx) if missing — needs ~5 GB free disk
-#   6. Opens Agentica — voice STT/TTS weights auto-download on first app start (~0.5 GB)
-#
-# From-scratch note (verified on macOS arm64): after this script finishes and the
-# app window opens, Chat works immediately if the model pull succeeded. Voice
-# becomes ready after the first-start weight download (or POST /api/voice/install).
-#
-# Env overrides:
-#   AGENTICA_VERSION=v0.3.0     pin a release tag (default: latest)
-#   AGENTICA_MODEL=qwen3.5:4b-mlx
-#   AGENTICA_SKIP_MODEL=1       skip ollama pull
-#   AGENTICA_SKIP_OPEN=1        don't open the app at the end
-#   AGENTICA_URL=…              override download URL (testing)
-#
-set -eu
-
-REPO="Bowen-AI/agentica-releases"
-PAGES="https://bowen-ai.github.io/agentica-releases"
-VERSION="${AGENTICA_VERSION:-latest}"
-DEFAULT_MODEL="${AGENTICA_MODEL:-qwen3.5:4b-mlx}"
-
-if [ -t 1 ]; then
-  B="$(printf '\033[1m')"; DIM="$(printf '\033[2m')"; R="$(printf '\033[0m')"
-  GRN="$(printf '\033[32m')"; BLU="$(printf '\033[34m')"; YLW="$(printf '\033[33m')"; RED="$(printf '\033[31m')"
-else
-  B=""; DIM=""; R=""; GRN=""; BLU=""; YLW=""; RED=""
-fi
-say()  { printf '%s\n' "$*"; }
-step() { printf '%s==>%s %s\n' "$BLU$B" "$R" "$*"; }
-ok()   { printf '%s  ✓%s %s\n' "$GRN" "$R" "$*"; }
-warn() { printf '%s  !%s %s\n' "$YLW" "$R" "$*"; }
-die()  { printf '%s  ✗ %s%s\n' "$RED$B" "$*" "$R" >&2; exit 1; }
-
-UNAME_S="$(uname -s)"
-UNAME_M="$(uname -m)"
-case "$UNAME_S" in
-  Darwin) OS="mac" ;;
-  Linux)  OS="linux" ;;
-  *) die "Unsupported OS: $UNAME_S (macOS or Linux / WSL)." ;;
-esac
-case "$UNAME_M" in
-  arm64|aarch64) ARCH="arm64" ;;
-  x86_64|amd64)  ARCH="x64" ;;
-  *) die "Unsupported CPU: $UNAME_M" ;;
-esac
-if [ "$OS" = "mac" ] && [ "$ARCH" = "x64" ] && \
-   [ "$(sysctl -n sysctl.proc_translated 2>/dev/null || echo 0)" = "1" ]; then
-  ARCH="arm64"
-fi
-
-# Prefer AppImage on Linux x64 when published; fall back to tar.gz.
-ASSET=""
-ASSET_KIND=""
-if [ "$OS" = "mac" ]; then
-  ASSET="Agentica-mac-${ARCH}.zip"
-  ASSET_KIND="zip"
-else
-  if [ "$ARCH" = "x64" ]; then
-    ASSET="Agentica-linux-x64.AppImage"
-    ASSET_KIND="appimage"
-  else
-    ASSET="Agentica-linux-${ARCH}.tar.gz"
-    ASSET_KIND="targz"
-  fi
-fi
-
-asset_url() {
-  if [ "$VERSION" = "latest" ]; then
-    printf 'https://github.com/%s/releases/latest/download/%s' "$REPO" "$1"
-  else
-    printf 'https://github.com/%s/releases/download/%s/%s' "$REPO" "$VERSION" "$1"
-  fi
-}
-
-if [ -n "${AGENTICA_URL:-}" ]; then
-  URL="$AGENTICA_URL"
-else
-  URL="$(asset_url "$ASSET")"
-  # If AppImage is missing from the release, fall back to tar.gz before failing.
-  if [ "$ASSET_KIND" = "appimage" ]; then
-    if ! curl -fsSIL --max-time 15 "$URL" >/dev/null 2>&1; then
-      warn "AppImage not published yet — trying tar.gz"
-      ASSET="Agentica-linux-${ARCH}.tar.gz"
-      ASSET_KIND="targz"
-      URL="$(asset_url "$ASSET")"
-    fi
-  fi
-fi
-
-say ""
-say "${B}  Agentica installer${R}"
-say "${DIM}  ${OS} · ${ARCH} · ${VERSION} · model ${DEFAULT_MODEL}${R}"
-say ""
-
-# ---- disk space helpers (unit-testable via scripts/test-install-lib.sh) -----
-# Min free space: ~600 MB for the app archive, ~5 GB before model pull.
+#!/usr/bin/env bash
+# curl -fsSL https://bowen-ai.github.io/agentica-releases/install.sh | bash
+# Overrides: AGENTICA_VERSION, AGENTICA_MODEL, AGENTICA_SKIP_MODEL=1,
+# AGENTICA_SKIP_OPEN=1, AGENTICA_ENGINE=ollama|llamacpp, AGENTICA_NO_MODIFY_PATH=1.
+# Install paths: AGENTICA_APPS_DIR (Mac), AGENTICA_INSTALL_DIR (Linux app only),
+# AGENTICA_BIN_DIR. Existing conversations, workspaces and models are preserved.
+set -euo pipefail
+say() { printf '%s\n' "$*"; }
+die() { say "ERROR: $*" >&2; exit 1; }
+need() { command -v "$1" >/dev/null 2>&1 || die "Missing dependency: $1. Install it and run this installer again."; }
+for tool in curl uname mktemp awk sed df tar chmod mkdir cp mv tr; do need "$tool"; done
+fetch() { curl --fail --location --retry 3 --connect-timeout 15 --max-time 1800 --progress-bar "$1" -o "$2"; }
 require_free_kb() {
-  # $1 = path to check  $2 = min KB  $3 = what for (message)
-  _path="$1"; _need="$2"; _why="$3"
-  _avail="$(df -k "$_path" 2>/dev/null | awk 'NR==2 {print $4}')"
-  if [ -z "${_avail:-}" ]; then
-    warn "Could not read free disk for $_path — continuing"
-    return 0
-  fi
-  if [ "$_avail" -lt "$_need" ]; then
-    _have_h="$(df -h "$_path" 2>/dev/null | awk 'NR==2 {print $4}')"
-    _need_h="$((_need / 1024 / 1024)) GB"
-    die "Need ~${_need_h} free disk ${_why} (only ${_have_h:-unknown} free under $_path). Free space and re-run."
-  fi
-  return 0
+  local available
+  available=$(df -Pk "$1" | awk 'NR==2 {print $4}')
+  [[ "$available" =~ ^[0-9]+$ ]] || die "Cannot check free disk space under $1."
+  (( available >= $2 )) || die "Need at least $(( $2 / 1024 )) MB free $3 (under $1)."
 }
+if command -v shasum >/dev/null 2>&1; then
+  digest() { shasum -a 256 "$1" | awk '{print $1}'; }
+elif command -v sha256sum >/dev/null 2>&1; then
+  digest() { sha256sum "$1" | awk '{print $1}'; }
+else die 'Install shasum or sha256sum to verify downloads.'; fi
 
-if command -v curl >/dev/null 2>&1; then
-  fetch() { curl -fL --progress-bar -o "$2" "$1"; }
-elif command -v wget >/dev/null 2>&1; then
-  fetch() { wget -q --show-progress -O "$2" "$1"; }
+os=$(uname -s); arch=$(uname -m)
+if [[ "$os" == Darwin && "$arch" == x86_64 ]] && [[ "$(sysctl -n sysctl.proc_translated 2>/dev/null || true)" == 1 ]]; then arch=arm64; fi
+case "$os:$arch" in
+  Darwin:arm64) asset=Agentica-mac-arm64.zip; default_model=qwen3.5:4b-mlx; need ditto ;;
+  Linux:x86_64|Linux:amd64) asset=Agentica-linux-x64.tar.gz; default_model=qwen3.5:4b; need ldd ;;
+  *) die "No supported release for $os/$arch. Available: Apple Silicon macOS and Linux x64." ;;
+esac
+engine=${AGENTICA_ENGINE:-ollama}
+[[ "$engine" == ollama || "$engine" == llamacpp ]] || die 'AGENTICA_ENGINE must be ollama or llamacpp.'
+model=${AGENTICA_MODEL:-$default_model}
+version=${AGENTICA_VERSION:-latest}
+base=https://github.com/Bowen-AI/agentica-releases/releases
+# Resolve latest once. Archive and checksum must come from the SAME release.
+if [[ "$version" == latest && -z "${AGENTICA_URL:-}" ]]; then
+  resolved=$(curl -fsSL --retry 3 --connect-timeout 15 --max-time 60 -o /dev/null -w '%{url_effective}' "$base/latest")
+  version=${resolved##*/}
+  [[ "$version" == v* ]] || die 'Could not resolve the latest release tag.'
+fi
+url=${AGENTICA_URL:-$base/download/$version/$asset}
+bin_dir=${AGENTICA_BIN_DIR:-$HOME/.local/bin}
+require_free_kb "${TMPDIR:-/tmp}" 1500000 'to download and extract the app'
+tmp=$(mktemp -d "${TMPDIR:-/tmp}/agentica.XXXXXX")
+stage=''; backup=''; destination=''
+cleanup() {
+  local result=$?
+  if [[ -n "$backup" && -e "$backup" && ! -e "$destination" ]]; then mv "$backup" "$destination" || true; fi
+  [[ -z "$stage" ]] || rm -rf "$stage"
+  rm -rf "$tmp"
+  return "$result"
+}
+trap cleanup EXIT
+trap 'exit 130' INT
+trap 'exit 143' TERM
+say "Downloading Agentica ($os/$arch, $version)..."
+fetch "$url" "$tmp/$asset" || die "Download failed: $url"
+expected=${AGENTICA_SHA256:-}
+if [[ -z "$expected" ]]; then
+  fetch "${AGENTICA_CHECKSUM_URL:-$base/download/$version/SHA256SUMS}" "$tmp/SHA256SUMS" || die 'Release checksum missing. The app has not been replaced.'
+  expected=$(awk -v name="$asset" '$2 == name || $2 == "*"name {print $1}' "$tmp/SHA256SUMS")
+fi
+[[ "$expected" =~ ^[a-fA-F0-9]{64}$ ]] || die "Missing or invalid SHA-256 for $asset."
+actual=$(digest "$tmp/$asset")
+[[ "$actual" == "$(printf %s "$expected" | tr A-F a-f)" ]] || die 'Download checksum mismatch. The app has not been replaced.'
+mkdir -p "$tmp/extracted" "$bin_dir"
+if [[ "$os" == Darwin ]]; then
+  ditto -x -k "$tmp/$asset" "$tmp/extracted"
+  source_app="$tmp/extracted/Agentica.app"
+  [[ -d "$source_app" ]] || die 'Agentica.app missing from the release archive.'
+  backend="$source_app/Contents/Resources/resources/agentica-core"
+  apps_dir=${AGENTICA_APPS_DIR:-/Applications}
+  if [[ ! -w "$apps_dir" && -z "${AGENTICA_APPS_DIR:-}" ]]; then apps_dir="$HOME/Applications"; fi
+  mkdir -p "$apps_dir"
+  destination="$apps_dir/Agentica.app"
 else
-  die "Need curl or wget."
+  # tar.gz avoids AppImage's unbundled FUSE requirement.
+  tar -xzf "$tmp/$asset" -C "$tmp/extracted"
+  source_app="$tmp/extracted"
+  if [[ ! -f "$source_app/agentica" || ! -x "$source_app/agentica" ]]; then
+    candidates=("$tmp/extracted"/*/agentica)
+    [[ ${#candidates[@]} == 1 && -f "${candidates[0]}" && -x "${candidates[0]}" ]] || die 'agentica executable missing from archive.'
+    source_app=${candidates[0]%/agentica}
+  fi
+  backend="$source_app/resources/resources/agentica-core"
+  executable="$source_app/agentica.bin"
+  [[ -x "$executable" ]] || executable="$source_app/agentica"
+  libraries=$(ldd "$executable" 2>&1) || die "Cannot inspect Linux runtime dependencies: $libraries"
+  if [[ "$libraries" == *'not found'* ]]; then die "Install the missing system libraries before retrying:$libraries"; fi
+  # Never replace ~/.local/share/agentica itself: it also stores user data.
+  destination="${AGENTICA_INSTALL_DIR:-$HOME/.local/share/agentica/app}"
+  case "$destination" in /|"$HOME"|"$HOME/.local/share/agentica"|.|..|'') die 'AGENTICA_INSTALL_DIR must be a dedicated app directory, not a data/home directory.' ;; esac
+  case "${destination##*/}" in .|..) die 'AGENTICA_INSTALL_DIR must name a dedicated app directory.' ;; esac
+  [[ ! -L "$destination" ]] || die 'AGENTICA_INSTALL_DIR must not be a symlink.'
+  if [[ -d "$destination" && ! -f "$destination/agentica" ]]; then
+    die 'Existing install directory is not an Agentica app. Choose a dedicated app directory to preserve your data.'
+  fi
+  mkdir -p "$(dirname "$destination")"
 fi
+[[ -f "$backend" && -x "$backend" ]] || die 'The release is missing its bundled backend. The current app has not been replaced.'
+"$backend" doctor --require-voice || die 'Bundled runtime validation failed. The current app has not been replaced.'
+require_free_kb "$(dirname "$destination")" 1500000 'to install the app alongside your existing version'
 
-# App zip/AppImage is ~450 MB; require ~600 MB before download to avoid ENOSPC mid-fetch.
-require_free_kb "${TMPDIR:-/tmp}" 600000 "to download the Agentica app"
-
-TMP="$(mktemp -d "${TMPDIR:-/tmp}/agentica.XXXXXX")"
-cleanup() { rm -rf "$TMP"; }
-trap cleanup EXIT INT TERM
-
-PKG="$TMP/$ASSET"
-step "Downloading ${B}$ASSET${R}"
-say  "${DIM}    $URL${R}"
-fetch "$URL" "$PKG" || die "Download failed. See https://github.com/$REPO/releases/latest"
-if [ "$(wc -c < "$PKG")" -lt 5000000 ]; then
-  die "Downloaded file is too small — ${OS}/${ARCH} may not be published yet."
-fi
-ok "Downloaded ($(du -h "$PKG" | cut -f1 | tr -d ' '))"
-
-BIN_DIR="$HOME/.local/bin"
-mkdir -p "$BIN_DIR"
-
-add_to_path() {
-  case ":$PATH:" in *":$1:"*) return 0 ;; esac
-  [ "${AGENTICA_NO_MODIFY_PATH:-0}" = "1" ] && return 0
-  rc=""
-  case "$(basename "${SHELL:-}")" in
-    zsh)  rc="$HOME/.zshrc" ;;
-    bash) [ "$OS" = mac ] && rc="$HOME/.bash_profile" || rc="$HOME/.bashrc" ;;
-    *)    rc="$HOME/.profile" ;;
-  esac
-  rc="${rc:-$HOME/.profile}"
-  if [ -f "$rc" ] && grep -q 'agentica installer' "$rc" 2>/dev/null; then return 0; fi
-  {
-    printf '\n# >>> agentica installer >>>\n'
-    printf 'export PATH="%s:$PATH"\n' "$1"
-    printf '# <<< agentica installer <<<\n'
-  } >> "$rc"
-  ok "Added $1 to PATH in ${rc##*/}"
-}
-
-# ---- install app -----------------------------------------------------------
-if [ "$OS" = "mac" ]; then
-  step "Installing app"
-  EX="$TMP/x"; mkdir -p "$EX"
-  if command -v ditto >/dev/null 2>&1; then ditto -x -k "$PKG" "$EX"; else unzip -q "$PKG" -d "$EX"; fi
-  APP_SRC="$(find "$EX" -maxdepth 2 -name 'Agentica.app' -print | head -n1)"
-  [ -n "$APP_SRC" ] || die "Agentica.app not found in archive."
-  if [ -w /Applications ]; then APPS="/Applications"; else
-    APPS="$HOME/Applications"; mkdir -p "$APPS"
-    warn "/Applications not writable — using ~/Applications"
-  fi
-  APP="$APPS/Agentica.app"
-  # Quit a running copy so we can replace it cleanly.
-  osascript -e 'quit app "Agentica"' >/dev/null 2>&1 || true
-  sleep 1
-  rm -rf "$APP"
-  ditto "$APP_SRC" "$APP" 2>/dev/null || cp -R "$APP_SRC" "$APP"
-  xattr -dr com.apple.quarantine "$APP" 2>/dev/null || true
-  ok "Installed to $APP (quarantine cleared)"
-  # Launch via `open -a` (LaunchServices) and scrub ELECTRON_RUN_AS_NODE so
-  # Cursor/agent shells cannot turn the Electron binary into a silent no-op.
-  cat > "$BIN_DIR/agentica" <<EOF
-#!/bin/sh
-unset ELECTRON_RUN_AS_NODE
-unset ELECTRON_NO_ASAR
-unset ELECTRON_FORCE_IS_PACKAGED
-exec open -a "$APP" "\$@"
-EOF
-  chmod +x "$BIN_DIR/agentica"
-  add_to_path "$BIN_DIR"
-else
-  step "Installing app"
-  INSTALL_DIR="${AGENTICA_INSTALL_DIR:-$HOME/.local/share/agentica}"
-  # Prefer a writable default; fall back if ~/.local/share is missing/unwritable.
-  if ! mkdir -p "$INSTALL_DIR" 2>/dev/null; then
-    INSTALL_DIR="$HOME/agentica"
-    warn "~/.local/share/agentica not writable — using $INSTALL_DIR"
-    mkdir -p "$INSTALL_DIR" || die "Cannot create install dir $INSTALL_DIR"
-  fi
-  rm -rf "$INSTALL_DIR"
-  mkdir -p "$INSTALL_DIR"
-  if [ "$ASSET_KIND" = "appimage" ] || printf '%s' "$ASSET" | grep -q '\.AppImage$'; then
-    APPIMAGE="$INSTALL_DIR/Agentica.AppImage"
-    cp "$PKG" "$APPIMAGE"
-    chmod +x "$APPIMAGE"
-    cat > "$BIN_DIR/agentica" <<EOF
-#!/bin/sh
-unset ELECTRON_RUN_AS_NODE
-unset ELECTRON_NO_ASAR
-unset ELECTRON_FORCE_IS_PACKAGED
-exec "$APPIMAGE" --no-sandbox "\$@"
-EOF
-  else
-    EX="$TMP/x"; mkdir -p "$EX"
-    tar -xzf "$PKG" -C "$EX"
-    TOP="$(find "$EX" -mindepth 1 -maxdepth 1 -type d | head -n1)"
-    [ -n "$TOP" ] && [ -x "$TOP/agentica" ] || die "agentica binary missing in archive."
-    rm -rf "$INSTALL_DIR"
-    mkdir -p "$(dirname "$INSTALL_DIR")"
-    mv "$TOP" "$INSTALL_DIR"
-    chmod +x "$INSTALL_DIR/agentica"
-    cat > "$BIN_DIR/agentica" <<EOF
-#!/bin/sh
-unset ELECTRON_RUN_AS_NODE
-unset ELECTRON_NO_ASAR
-unset ELECTRON_FORCE_IS_PACKAGED
-exec "$INSTALL_DIR/agentica" --no-sandbox "\$@"
-EOF
-  fi
-  chmod +x "$BIN_DIR/agentica"
-  add_to_path "$BIN_DIR"
-  ok "Installed to $INSTALL_DIR"
-fi
-
-# ---- Ollama + default model ------------------------------------------------
-ensure_ollama() {
-  if command -v ollama >/dev/null 2>&1; then
-    ok "Ollama found: $(command -v ollama)"
-    return 0
-  fi
-  step "Installing Ollama (required for the default chat model)"
-  if [ "$OS" = "mac" ] && command -v brew >/dev/null 2>&1; then
-    brew install ollama || warn "brew install ollama failed — trying official installer"
-  fi
-  if ! command -v ollama >/dev/null 2>&1; then
-    curl -fsSL https://ollama.com/install.sh | sh || die "Could not install Ollama. Install from https://ollama.com and re-run."
-  fi
-  command -v ollama >/dev/null 2>&1 || die "Ollama still not on PATH after install."
-  ok "Ollama installed"
-}
-
-start_ollama() {
-  if curl -fsS --max-time 2 http://127.0.0.1:11434/api/tags >/dev/null 2>&1; then
-    ok "Ollama already running"
-    return 0
-  fi
-  step "Starting Ollama"
-  if [ "$OS" = "mac" ]; then
-    # Prefer the app if present; fall back to `ollama serve`.
-    open -a Ollama >/dev/null 2>&1 || true
-  fi
-  nohup ollama serve >/dev/null 2>&1 &
-  i=0
-  while [ "$i" -lt 60 ]; do
-    if curl -fsS --max-time 2 http://127.0.0.1:11434/api/tags >/dev/null 2>&1; then
-      ok "Ollama is up"
-      return 0
-    fi
-    i=$((i + 1))
-    sleep 1
+if [[ "$engine" == ollama ]]; then
+  # Look in GUI-safe locations too; a fresh macOS shell may not have Homebrew on PATH.
+  ollama_bin=$(command -v ollama || true)
+  for candidate in /opt/homebrew/bin/ollama /usr/local/bin/ollama "$HOME/.local/share/agentica/ollama/ollama" "$HOME/.local/share/agentica/ollama/bin/ollama"; do
+    [[ -n "$ollama_bin" || ! -x "$candidate" ]] || ollama_bin=$candidate
   done
-  die "Ollama did not become ready on :11434"
-}
-
-pull_default_model() {
-  [ "${AGENTICA_SKIP_MODEL:-0}" = "1" ] && { warn "Skipping model pull (AGENTICA_SKIP_MODEL=1)"; return 0; }
-  if ollama list 2>/dev/null | awk 'NR>1 {print $1}' | grep -qx "$DEFAULT_MODEL"; then
-    ok "Default model already present: $DEFAULT_MODEL"
-    return 0
+  if [[ -z "$ollama_bin" ]]; then
+    runtime_dir=${AGENTICA_OLLAMA_DIR:-$HOME/.local/share/agentica/ollama}
+    mkdir -p "$runtime_dir"
+    say 'Installing the Ollama runtime (no Python or Node installation needed)...'
+    ollama_base=https://github.com/ollama/ollama/releases/latest/download
+    if [[ "$os" == Darwin ]]; then
+      fetch "$ollama_base/ollama-darwin.tgz" "$tmp/ollama.tgz"
+      tar -xzf "$tmp/ollama.tgz" -C "$runtime_dir"
+      ollama_bin="$runtime_dir/ollama"
+    else
+      need zstd
+      fetch "$ollama_base/ollama-linux-amd64.tar.zst" "$tmp/ollama.tar.zst"
+      zstd -d "$tmp/ollama.tar.zst" -o "$tmp/ollama.tar"
+      tar -xf "$tmp/ollama.tar" -C "$runtime_dir"
+      ollama_bin="$runtime_dir/bin/ollama"
+    fi
+    [[ -x "$ollama_bin" ]] || die 'Ollama extraction failed. Install from https://ollama.com/download and retry.'
   fi
-  # Also accept tagless / :latest variants listed by ollama.
-  if ollama list 2>/dev/null | awk 'NR>1 {print $1}' | grep -qE "^${DEFAULT_MODEL%%:*}(:|$)"; then
-    ok "A matching model is already installed for ${DEFAULT_MODEL%%:*}"
-    return 0
+  ollama_host=${OLLAMA_HOST:-http://127.0.0.1:11434}
+  [[ "$ollama_host" == http*://* ]] || ollama_host="http://$ollama_host"
+  export OLLAMA_HOST="$ollama_host"
+  if ! curl -fsS --max-time 2 "$ollama_host/api/tags" >/dev/null 2>&1; then
+    need nohup
+    say 'Starting Ollama...'
+    nohup "$ollama_bin" serve >"$tmp/ollama-start.log" 2>&1 &
+    ready=0
+    for ((attempt=0; attempt<60; attempt++)); do
+      if curl -fsS --max-time 2 "$ollama_host/api/tags" >/dev/null 2>&1; then ready=1; break; fi
+      sleep 1
+    done
+    [[ "$ready" == 1 ]] || die "Ollama did not become ready at $ollama_host. Check OLLAMA_HOST and run '$ollama_bin serve'."
   fi
-  step "Pulling default chat model ${B}$DEFAULT_MODEL${R} (one-time, ~4 GB)"
-  # Models land under $HOME/.ollama by default — check that volume before download.
-  require_free_kb "$HOME" 5000000 "to pull $DEFAULT_MODEL (or set AGENTICA_SKIP_MODEL=1)"
-  if ! ollama pull "$DEFAULT_MODEL"; then
-    die "ollama pull $DEFAULT_MODEL failed. If you see 'no space left on device' / ENOSPC, free ~5 GB under \$HOME and re-run (or AGENTICA_SKIP_MODEL=1)."
+  if [[ "${AGENTICA_SKIP_MODEL:-0}" != 1 ]]; then
+    canonical_model=$model
+    [[ "$model" == *:* ]] || canonical_model="$model:latest"
+    if ! "$ollama_bin" list | awk -v model="$canonical_model" 'NR>1 && $1==model {found=1} END {exit !found}'; then
+      models_dir=${OLLAMA_MODELS:-$HOME/.ollama/models}
+      mkdir -p "$models_dir"
+      require_free_kb "$models_dir" 5000000 "for $model (larger models need more; AGENTICA_SKIP_MODEL=1 skips the download)"
+      say "Downloading $model..."
+      "$ollama_bin" pull "$model" || die "Model download failed. Free disk space/check the model tag and retry. The current app has not been replaced."
+    fi
   fi
-  ok "Model ready: $DEFAULT_MODEL"
-}
-
-ensure_ollama
-start_ollama
-pull_default_model
-
-say ""
-say "${GRN}${B}  Agentica is installed and first-run ready.${R}"
-say "  Chat model:  ${B}$DEFAULT_MODEL${R}"
-say "  Voice:       STT/TTS weights download automatically when the app starts"
-say "  Launch:      ${B}agentica${R}$( [ "$OS" = mac ] && echo "  (or Spotlight / Launchpad)" )"
-say "  Guide:       ${BLU}$PAGES${R}"
-say ""
-
-if [ "${AGENTICA_SKIP_OPEN:-0}" != "1" ]; then
-  step "Opening Agentica"
-  if [ "$OS" = "mac" ]; then
-    unset ELECTRON_RUN_AS_NODE ELECTRON_NO_ASAR ELECTRON_FORCE_IS_PACKAGED
-    open -a "$APP"
-  else
-    "$BIN_DIR/agentica" >/dev/null 2>&1 &
-  fi
-  ok "Launched — you can send a Chat turn as soon as the window appears"
+else
+  llama_bin=${AGENTICA_LLAMA_SERVER:-$(command -v llama-server || true)}
+  [[ -n "$llama_bin" ]] || { [[ ! -x /opt/homebrew/bin/llama-server ]] || llama_bin=/opt/homebrew/bin/llama-server; }
+  [[ -x "$llama_bin" ]] || die 'Install llama.cpp first (Mac: brew install llama.cpp), or set AGENTICA_LLAMA_SERVER. Then rerun with AGENTICA_ENGINE=llamacpp.'
+  "$llama_bin" --version >/dev/null 2>&1 || die 'llama-server cannot start; check its shared libraries.'
 fi
+
+# Stage on the destination filesystem, validate before moving the old app, and
+# restore it if the final rename fails. No data/model directory is ever removed.
+stage=$(mktemp -d "$(dirname "$destination")/.agentica-stage.XXXXXX")
+cp -R "$source_app/." "$stage/"
+if [[ "$os" == Darwin ]]; then
+  if [[ -d "$destination" ]]; then
+    osascript -l JavaScript -e 'function run(argv) { const app = Application(argv[0]); if (app.running()) app.quit(); }' "$destination" >/dev/null 2>&1 || true
+  fi
+  xattr -dr com.apple.quarantine "$stage" 2>/dev/null || true
+fi
+if [[ -e "$destination" ]]; then
+  backup="$destination.previous-$(date +%s)-$$"
+  mv "$destination" "$backup"
+fi
+mv "$stage" "$destination"
+stage=''
+# Retain the previous app as a rollback copy; no recursive deletion of user paths.
+[[ -z "$backup" ]] || say "Previous app retained at $backup (safe to remove after checking the new app)."
+{
+  printf '#!/usr/bin/env bash\nunset ELECTRON_RUN_AS_NODE ELECTRON_NO_ASAR ELECTRON_FORCE_IS_PACKAGED\n'
+  [[ "$engine" != ollama ]] || printf 'export AGENTICA_MODEL=%q\n' "$model"
+  [[ "$engine" != llamacpp ]] || printf 'export AGENTICA_LLAMA_SERVER=%q\n' "$llama_bin"
+  if [[ "$os" == Darwin ]]; then
+    printf 'exec open -a %q ' "$destination"
+    if [[ "$engine" == ollama ]]; then printf -- '--env %q ' "AGENTICA_MODEL=$model";
+    else printf -- '--env %q ' "AGENTICA_LLAMA_SERVER=$llama_bin"; fi
+    printf -- '--args "$@"\n'
+  else printf 'exec %q --no-sandbox "$@"\n' "$destination/agentica"; fi
+} > "$bin_dir/agentica"
+chmod +x "$bin_dir/agentica"
+case ":$PATH:" in
+  *":$bin_dir:"*) ;;
+  *)
+    if [[ "${AGENTICA_NO_MODIFY_PATH:-0}" != 1 ]]; then
+      case "${SHELL:-}" in */zsh) rc="$HOME/.zshrc" ;; */bash) rc="$HOME/.bashrc" ;; *) rc="$HOME/.profile" ;; esac
+      line=$(printf 'export PATH=%q:"$PATH" # agentica installer' "$bin_dir")
+      if ! grep -Fqx "$line" "$rc" 2>/dev/null; then printf '\n%s\n' "$line" >> "$rc"; fi
+    fi
+    say "For this terminal: export PATH=\"$bin_dir:\$PATH\""
+    ;;
+esac
+say "Agentica installed at $destination. Launch with $bin_dir/agentica."
+if [[ "$engine" == llamacpp ]]; then
+  say 'Select llama.cpp / GGUF in Model engine, then enter a local tool-capable GGUF file path.'
+elif [[ "${AGENTICA_SKIP_MODEL:-0}" == 1 ]]; then
+  say "Model download skipped. Use the app's Download model control before your first agent task."
+else say "Agent model ready: $model"; fi
+say 'Voice runtime is bundled; speech model weights download on first voice setup.'
+if [[ "${AGENTICA_SKIP_OPEN:-0}" != 1 ]]; then "$bin_dir/agentica"; fi

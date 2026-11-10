@@ -3,90 +3,403 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Agentica</title>
-<meta name="description" content="Install Agentica — private agents on machines you own. One command installs the app, pulls the default model, and opens Chat ready to use." />
-<meta name="theme-color" content="#e8eee9" />
-<link rel="preconnect" href="https://fonts.googleapis.com" />
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-<link href="https://fonts.googleapis.com/css2?family=Source+Sans+3:wght@400;500;600;700&family=Syne:wght@600;700;800&display=swap" rel="stylesheet" />
+<title>Agentica — private, tool-using AI on your own machines</title>
+<meta name="description" content="Agentica is a free, open-source desktop app for tool-using AI on hardware you own. Every turn is agentic. Run the model locally or on SSH while tools work in a local or remote workspace; submit parallel tracked jobs; use local open-weight voice; keep deletable text history. Install in one line." />
+<meta name="keywords" content="private AI, open source AI, local AI, ChatGPT alternative, open-weight models, Hugging Face, Ollama UI, no API key, no subscription, your own AI, AI memory, on-prem AI, agentic AI, agent, local LLM, SLURM, HPC, research computing, vLLM, GPU, macOS, Linux, Windows, WSL, llama, qwen, gemma, deepseek, GLM" />
+<link rel="canonical" href="https://agenticaai.vercel.app/" />
+<meta name="theme-color" content="#0d1117" />
+<link rel="icon" type="image/png" href="favicon.png" />
+<link rel="apple-touch-icon" href="favicon.png" />
+<meta name="robots" content="index, follow" />
+<meta name="google-site-verification" content="NwJpwhXA1G-YpV--g6VyNhiFM9226IUPxmlSFHf_dKI" />
+<!-- Open Graph / Twitter -->
+<meta property="og:type" content="website" />
+<meta property="og:site_name" content="Agentica" />
+<meta property="og:title" content="Agentica — private agents on your own machines" />
+<meta property="og:description" content="Every turn uses tools. Split model inference from the workspace, run tracked jobs across local/SSH/SLURM workers, and use local open-weight voice." />
+<meta property="og:url" content="https://agenticaai.vercel.app/" />
+<meta property="og:image" content="https://agenticaai.vercel.app/img/chat-agentic.png" />
+<meta name="twitter:card" content="summary_large_image" />
+<meta name="twitter:title" content="Agentica — private agents on your own machines" />
+<meta name="twitter:description" content="Tool-using Chat and Voice, independent model/workspace machines, and parallel tracked Jobs. Open source and local-first." />
+<meta name="twitter:image" content="https://agenticaai.vercel.app/img/plan.png" />
 <link rel="stylesheet" href="style.css" />
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "SoftwareApplication",
+  "name": "Agentica",
+  "applicationCategory": "DeveloperApplication",
+  "operatingSystem": "macOS, Linux, Windows (WSL)",
+  "description": "Free, open-source desktop app for private tool-using AI on hardware you own. Every turn is agentic, model and workspace machines are independent, jobs are tracked across local/SSH/SLURM workers, and voice speech runs locally.",
+  "url": "https://agenticaai.vercel.app/",
+  "downloadUrl": "https://github.com/Bowen-AI/agentica-releases/releases/latest",
+  "installUrl": "https://bowen-ai.github.io/agentica-releases/install.sh",
+  "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" },
+  "keywords": "agentic AI, SLURM, HPC, Ollama, open-weight LLM, local AI, macOS, Linux"
+}
+</script>
 </head>
 <body>
-<div class="atmosphere" aria-hidden="true"></div>
-
-<header class="top">
-  <div class="wrap bar">
-    <a class="brand-nav" href="#top">Agentica</a>
+<header>
+  <div class="wrap nav">
+    <a class="logo" href="#top">Agentica<span class="dot"></span></a>
     <nav>
-      <a href="#install">Install</a>
-      <a href="#platforms">Platforms</a>
-      <a href="#included">Included</a>
-      <a href="https://github.com/Bowen-AI/agentica-releases/releases/latest" rel="noopener">Releases</a>
+      <a href="#why">Why</a>
+      <a href="#jobs">Jobs</a>
+      <a href="#models">Models</a>
+      <a href="#scale">Targets</a>
+      <a href="#try">Try it</a>
+      <a href="#how">How it works</a>
+      <a href="releases.html">What's new</a>
+      <a href="https://github.com/Bowen-AI/Agentica">Source</a>
+      <a class="navdl" href="#install">Install</a>
     </nav>
   </div>
 </header>
 
-<main id="top">
-  <section class="hero">
-    <div class="wrap hero-inner">
-      <p class="brand reveal">Agentica</p>
-      <h1 class="reveal delay-1">Agents on machines you already own.</h1>
-      <p class="lede reveal delay-2">
-        Private, tool-using Chat and Voice on local, SSH, or SLURM hardware — with a default model ready after install.
-      </p>
+<a id="top"></a>
+<section class="hero">
+  <div class="wrap">
+    <div class="pill">Free · Open source · Private · No subscriptions</div>
+    <h1>Your own agents, on your own <span>machines</span>.</h1>
+    <p class="lede">
+      Agentica is a free, open-source app where <b>every turn is agentic</b>: the model can inspect
+      a workspace, edit files, run commands, and verify the result. Choose Ollama or lightweight llama.cpp for local inference, and upgrade models from the sidebar. Run the model on your laptop or
+      an SSH GPU, keep tools local or move them to a remote checkout, and submit durable jobs across
+      several workers. Voice uses local open-weight speech. Your code and history stay on hardware
+      you control.
+    </p>
 
-      <p class="detect reveal delay-3" id="detect-label">Detecting your system…</p>
-      <div class="cta reveal delay-3" id="primary-cta"></div>
-      <ul class="alt-inline reveal delay-4" id="alt-list"></ul>
-    </div>
-  </section>
-
-  <section class="section" id="install">
-    <div class="wrap narrow">
-      <h2>Install</h2>
-      <p class="section-lede">One command downloads the latest build, clears Gatekeeper quarantine on macOS, starts Ollama, pulls <code>qwen3.5:4b-mlx</code> (~4&nbsp;GB — keep ~5&nbsp;GB free), and opens Agentica.</p>
-      <div class="cmd">
-        <code id="oneliner">curl -fsSL https://bowen-ai.github.io/agentica-releases/install.sh | bash</code>
-        <button type="button" class="copy" id="copy-btn" aria-label="Copy install command">Copy</button>
+    <!-- OS-detected install card -->
+    <div class="install" id="install">
+      <div class="os-tabs" role="tablist" aria-label="Choose your platform">
+        <button class="os-tab" data-os="mac"   role="tab" aria-selected="false"><span class="ic"></span> macOS</button>
+        <button class="os-tab" data-os="linux" role="tab" aria-selected="false"><span class="ic"></span> Linux</button>
+        <button class="os-tab" data-os="win"   role="tab" aria-selected="false"><span class="ic"></span> Windows · WSL</button>
       </div>
-      <p class="hint" id="copy-status" hidden>Copied.</p>
-    </div>
-  </section>
 
-  <section class="section" id="platforms">
-    <div class="wrap narrow">
-      <h2>Platforms</h2>
-      <p class="section-lede">Links follow the latest GitHub release. Missing builds are labeled — never a silent 404.</p>
-      <ul class="platform-list" id="platform-list"></ul>
-    </div>
-  </section>
+      <div class="os-panel" data-os="mac">
+        <div class="cmd"><code>curl -fsSL https://bowen-ai.github.io/agentica-releases/install.sh | bash</code><button class="copy" type="button" aria-label="Copy install command">Copy</button></div>
+        <div class="dlrow">
+          <span class="or">or grab the app:</span>
+          <a class="btn sm" data-asset="Agentica-mac-arm64.dmg" href="https://github.com/Bowen-AI/agentica-releases/releases/latest/download/Agentica-mac-arm64.dmg">⬇ Apple&nbsp;Silicon&nbsp;.dmg</a>
+          <a class="btn sm" data-asset="Agentica-mac-x64.dmg" href="https://github.com/Bowen-AI/agentica-releases/releases/latest/download/Agentica-mac-x64.dmg">⬇ Intel&nbsp;.dmg</a>
+        </div>
+        <p class="note">Apple&nbsp;Silicon is the required macOS build; Intel is shown only when that release contains the asset. Local voice prefers MLX Whisper on Apple&nbsp;Silicon. Unsigned build — the installer opens it cleanly; for a manual&nbsp;.dmg, right-click <b>Agentica → Open</b> once.</p>
+      </div>
 
-  <section class="section" id="included">
-    <div class="wrap narrow">
-      <h2>What’s included</h2>
-      <p class="section-lede">Desktop app and bundled backend for Chat, Voice, Jobs, and History. After install, Chat works once the default model is on disk; voice weights download on first app start.</p>
-      <ul class="plain">
-        <li>Default chat model: <code>qwen3.5:4b-mlx</code> (via install script; needs ~5&nbsp;GB free)</li>
-        <li>Local voice: Whisper + Kokoro/Piper (auto on first app start, ~0.5&nbsp;GB)</li>
-        <li>macOS builds are unsigned / not notarized — the one-liner clears quarantine</li>
-        <li>Linux x64: AppImage and tar.gz on the latest GitHub release</li>
-      </ul>
-    </div>
-  </section>
-</main>
+      <div class="os-panel" data-os="linux" hidden>
+        <div class="cmd"><code>curl -fsSL https://bowen-ai.github.io/agentica-releases/install.sh | bash</code><button class="copy" type="button" aria-label="Copy install command">Copy</button></div>
+        <div class="dlrow">
+          <span class="or">or download:</span>
+          <a class="btn sm" data-asset="Agentica-linux-x64.AppImage" href="https://github.com/Bowen-AI/agentica-releases/releases/latest/download/Agentica-linux-x64.AppImage">⬇ AppImage</a>
+          <a class="btn sm" data-asset="Agentica-linux-x64.tar.gz" href="https://github.com/Bowen-AI/agentica-releases/releases/latest/download/Agentica-linux-x64.tar.gz">⬇ tar.gz</a>
+        </div>
+        <p class="note">Installs to <code>~/.local</code> with an <code>agentica</code> launcher · works on WSLg · installs Ollama when needed. The tarball installer checks shared libraries and does not need FUSE. Linux x64 packages include faster-Whisper + Kokoro local speech; WSL mic/speaker access depends on the host audio setup.</p>
+      </div>
 
-<footer class="foot">
-  <div class="wrap bar">
-    <span>Agentica releases</span>
-    <nav>
-      <a href="https://github.com/Bowen-AI/agentica-releases" rel="noopener">GitHub</a>
-      <a href="https://github.com/Bowen-AI/agentica-releases/releases/latest" rel="noopener">Latest release</a>
-      <a href="https://github.com/Bowen-AI/AgenticLocal" rel="noopener">Engine</a>
-      <a href="https://agenticaai.vercel.app/" rel="noopener">Docs site</a>
-    </nav>
+      <div class="os-panel" data-os="win" hidden>
+        <p class="winlede">Agentica runs on Windows through <b>WSL</b> (Ubuntu) — the same one-liner, inside Linux.</p>
+        <ol class="wsl">
+          <li><span>Open <b>PowerShell</b> as Administrator and run:</span>
+            <div class="cmd"><code>wsl --install</code><button class="copy" type="button" aria-label="Copy">Copy</button></div></li>
+          <li><span>Reboot, open <b>Ubuntu</b> from the Start menu, then:</span>
+            <div class="cmd"><code>curl -fsSL https://bowen-ai.github.io/agentica-releases/install.sh | bash</code><button class="copy" type="button" aria-label="Copy">Copy</button></div></li>
+        </ol>
+        <p class="note">The desktop GUI uses <b>WSLg</b> (built into Windows&nbsp;11). No extra X server needed.</p>
+      </div>
+
+      <div class="meta-row">
+        <a class="dlcount" id="dlcount" hidden href="https://github.com/Bowen-AI/agentica-releases/releases/latest" rel="noopener">🚀&nbsp;<b id="dlnum">0</b>&nbsp;downloads</a>
+        <a class="appver" href="https://github.com/Bowen-AI/agentica-releases/releases/latest" rel="noopener">📦&nbsp;<span class="app-version">Latest release</span></a>
+        <a class="whatsnew" href="releases.html">📣&nbsp;What's&nbsp;new</a>
+      </div>
+    </div>
+    <p class="sub"><a href="#why">Why people choose Agentica →</a> · free forever · open source · no account needed</p>
+    <a class="soon-strip" href="#jobs">⚡ <b>Parallel workers:</b> submit tracked jobs to local, SSH, and SLURM machines at the same time. <span>See how →</span></a>
+  </div>
+</section>
+
+<section id="jobs" class="band roadmap">
+  <div class="wrap">
+    <span class="soon-badge">Shipped · tracked in History</span>
+    <h2>Hand off work to several machines</h2>
+    <p class="sectlede">Each submission becomes a durable Job entry. Change the worker and submit again; the runs work in parallel while Agentica monitors them together.</p>
+    <div class="why">
+      <article class="lead">
+        <span class="ic">⚡</span>
+        <h3>Parallel by submission</h3>
+        <p>Submit one plan locally, switch to an SSH server or cluster, and submit again. Every run gets its own status, logs, output, and cancel control.</p>
+      </article>
+      <article>
+        <span class="ic">📋</span>
+        <h3>Plan before execution</h3>
+        <p>Draft a checkable plan, highlight a weak phrase, attach comments, and let the agent revise the whole plan before any worker starts.</p>
+      </article>
+      <article>
+        <span class="ic">💻</span>
+        <h3>Local code, remote worker</h3>
+        <p>Snapshot a local folder into an isolated remote job directory, then sync successful output back when the run finishes.</p>
+      </article>
+      <article>
+        <span class="ic">🖥️</span>
+        <h3>Remote code, remote worker</h3>
+        <p>Point the worker at an existing checkout on that machine. On SLURM, use shared storage visible from the compute node.</p>
+      </article>
+      <article>
+        <span class="ic">🧪</span>
+        <h3>Agent plus backstops</h3>
+        <p>The Planner → Executor → Auditor loop works toward deterministic tests and required artifacts instead of accepting its own confidence as proof.</p>
+      </article>
+      <article>
+        <span class="ic">🕘</span>
+        <h3>Progress survives navigation</h3>
+        <p>Leave Job mode or reload the renderer. Saved run identifiers keep polling, and History records status, logs, and terminal output.</p>
+      </article>
+    </div>
+    <p class="roadnote">A tracked run is independent work, not shared concurrent editing of one working tree. Use separate workspaces when jobs could change the same files.</p>
+  </div>
+</section>
+
+<section id="why" class="band">
+  <div class="wrap">
+    <h2>Why people choose Agentica</h2>
+    <p class="sectlede">Powerful AI you fully own. No cloud landlord, no meter running, no one looking over your shoulder.</p>
+    <div class="why">
+      <article class="lead">
+        <span class="ic">🔓</span>
+        <h3>Any model, one click</h3>
+        <p>Pick from thousands of open models — from
+        <a href="https://huggingface.co">Hugging&nbsp;Face</a> or
+        <a href="https://ollama.com">Ollama</a> — and switch anytime.
+        You're never locked into one company's AI.</p>
+      </article>
+      <article>
+        <span class="ic">🎙️</span>
+        <h3>Local voice, same agent</h3>
+        <p>Speak, interrupt, and hear the result through local Whisper and Kokoro. The transcript
+        still goes through the full tool loop; there is no browser or cloud voice shortcut.</p>
+      </article>
+      <article>
+        <span class="ic">🔒</span>
+        <h3>Your work stays on your hardware</h3>
+        <p>Inference, workspaces, history, and voice audio stay on the local/SSH machines you
+        select. Model downloads and network tools contact their named sources only when used.</p>
+      </article>
+      <article>
+        <span class="ic">🧠</span>
+        <h3>History you control</h3>
+        <p>Browse Agent text, Voice text transcripts, and Job output in one place. Delete an entry,
+        clear one mode, or clear everything from Storage settings.</p>
+      </article>
+      <article>
+        <span class="ic">💸</span>
+        <h3>Free and open</h3>
+        <p>Fully open source. No subscription, no API keys, no usage limits, no surprise bill.
+        Use it as much as you like.</p>
+      </article>
+    </div>
+  </div>
+</section>
+
+<section id="shots" class="shots">
+  <div class="wrap">
+    <p class="shothint">Screenshots of the current app with illustrative task data. <b>Click to enlarge.</b></p>
+    <figure>
+      <img class="zoomable" src="img/model-upgrades.png" alt="Agent workspace with Apple Silicon model recommendations and file-tool progress" loading="lazy" width="2640" height="1800" />
+      <figcaption><b>Always an agent</b> — model upgrades, workspace tools, and visible progress in one place. Download a new Ollama tag or update an installed one.</figcaption>
+    </figure>
+    <figure>
+      <img class="zoomable" src="img/llama-cpp.png" alt="Local llama.cpp engine selected with a GGUF model path" loading="lazy" width="2640" height="1800" />
+      <figcaption><b>Local GGUF with llama.cpp</b> — use Metal on Apple Silicon with the same agent loop. Agentica manages the server and keeps one GGUF model loaded.</figcaption>
+    </figure>
+    <figure>
+      <img class="zoomable" src="img/model-target.png" alt="Remote model machine and local workspace selected independently" loading="lazy" width="2640" height="1800" />
+      <figcaption><b>Choose where the work runs</b> — remote vLLM inference can use tools in your local checkout.</figcaption>
+    </figure>
+    <figure>
+      <img class="zoomable" src="img/plan.png" alt="Reviewable job plan with tasks, tests and expected artifacts" loading="lazy" width="1280" height="720" />
+      <figcaption><b>Plan and submit</b> — review steps and test criteria, then submit tracked work to a local or remote worker.</figcaption>
+    </figure>
+    <figure>
+      <img class="zoomable" src="img/setup.png" alt="Setup offers Ollama installation or a choice of llama.cpp and remote models" loading="lazy" width="2640" height="1800" />
+      <figcaption><b>Choose your engine</b> — set up Ollama, use an existing GGUF, or connect a remote machine.</figcaption>
+    </figure>
+  </div>
+</section>
+
+<section id="models" class="band alt">
+  <div class="wrap">
+    <h2>Upgrade the model. Keep your workspace.</h2>
+    <p class="sectlede">Start small on Apple Silicon. Add newer model IDs without waiting for an app update. Each machine remembers your choice.</p>
+    <div class="model-table"><table>
+      <thead><tr><th>Mac memory</th><th>Suggested Ollama model</th><th>Use</th></tr></thead>
+      <tbody>
+        <tr><td>8–16 GB</td><td><a href="https://ollama.com/library/qwen3.5:4b-mlx">Qwen3.5 4B MLX</a></td><td>Short tasks and voice</td></tr>
+        <tr><td>24 GB+</td><td><a href="https://ollama.com/library/qwen3.5:9b-mlx">Qwen3.5 9B MLX</a></td><td>Everyday coding</td></tr>
+        <tr><td>32 GB+</td><td><a href="https://ollama.com/library/qwen3.6:27b-mlx">Qwen3.6 27B MLX</a></td><td>Larger tasks</td></tr>
+        <tr><td>48 GB+</td><td><a href="https://ollama.com/library/qwen3.6:35b-mlx">Qwen3.6 35B MLX</a></td><td>Larger coding projects</td></tr>
+      </tbody>
+    </table></div>
+    <p class="note2">These are conservative starting points, not measured fit or speed guarantees. Leave memory for macOS, other apps, and context. MLX tags require compatible Ollama on Apple Silicon.</p>
+    <p class="note2">Prefer GGUF? Install <code>brew install llama.cpp</code>, select <b>llama.cpp / GGUF</b>, and enter a downloaded model’s absolute path. Choose a model with a tool-capable chat template. Agentica uses an 8,192-token context by default; speed depends on your model and hardware.</p>
+    <p class="note2">The installer verifies SHA-256 checksums and bundled agent/voice dependencies before replacing the app. Upgrades preserve your data and keep the previous app for rollback. Model weights remain separate from the app.</p>
+  </div>
+</section>
+
+<section id="scale" class="band">
+  <div class="wrap scale">
+    <h2>Too big for your laptop? Use the computers you already have.</h2>
+    <p class="lead-line">
+      Small models run great on a laptop. The really capable ones need more muscle. Most apps stop
+      there — or quietly send your data to <em>their</em> cloud. Agentica doesn't. Point it at a
+      desktop with a graphics card, your own server, or a university or work cluster, and it runs the
+      big model <b>there</b> — for you.
+    </p>
+    <p class="note2">
+      The <b>Model machine</b> and <b>Workspace machine</b> are independent. Run a bigger model on an
+      SSH GPU while file and shell tools stay in a local repository, or point both selectors at the
+      remote machine to work in its checkout. The model picker follows the inference target instead
+      of quietly falling back to your laptop.
+    </p>
+    <div class="flow">
+      <div class="step"><span class="big">📁</span><b>Choose the workspace</b><span class="t">Local folder or a checkout on your SSH host.</span></div>
+      <div class="arrow">→</div>
+      <div class="step"><span class="big">🧠</span><b>Choose the model machine</b><span class="t">This laptop or a GPU server that fits the model.</span></div>
+      <div class="arrow">→</div>
+      <div class="step"><span class="big">🛠️</span><b>The agent does the work</b><span class="t">Tools run only on the selected workspace machine.</span></div>
+    </div>
+    <p class="note2">
+      SSH hosts come from your existing <code>~/.ssh/config</code>. Agentica connects, queries installed
+      models, and routes inference and tools to the locations you chose. It never silently moves the
+      workspace because the model is remote.
+    </p>
+    <p class="note2">
+      Already have a <b>SLURM / HPC cluster</b> with limited hours? You don't need it running all day.
+      Submit a job the way you already would — except Agentica handles the whole thing end to end, and
+      you never touch a command line.
+    </p>
+  </div>
+</section>
+
+<section id="ecosystem" class="band alt">
+  <div class="wrap">
+    <h2>Works with what you already have</h2>
+    <p class="sectlede">Your computer, your servers, your tools. No new accounts, no lock-in.</p>
+    <div class="eco">
+      <span>🍎 macOS</span>
+      <span>🐧 Linux</span>
+      <span>⊞ Windows · WSL</span>
+      <span>🦙 Ollama</span>
+      <span>⚡ llama.cpp · GGUF · Metal</span>
+      <span>🤗 Hugging Face</span>
+      <span>⚡ vLLM</span>
+      <span>🧮 SLURM / HPC</span>
+      <span>🎓 Universities &amp; labs</span>
+      <span>🖥️ Your own GPU servers</span>
+      <span>🟦 Works with VS Code</span>
+      <span>🔓 Llama · Qwen · Gemma · GLM · DeepSeek</span>
+    </div>
+    <p class="power">
+      <b>For power users:</b> connect any host in your <code>~/.ssh/config</code> — a plain GPU box or a
+      SLURM cluster (ProxyJump hops supported). Agentica can serve an OpenAI-compatible <code>/v1</code>
+      endpoint so VS&nbsp;Code, Continue and Cline work unchanged, and a built-in fit-check sizes a model
+      to your cards (A100 / L40S / A40 …). Verified end to end on USC&nbsp;CARC Discovery.
+    </p>
+  </div>
+</section>
+
+<section id="how" class="band">
+  <div class="wrap">
+    <h2>Up and running in 3 steps</h2>
+    <p class="sectlede">Install, choose where inference and tools run, then give the agent a verifiable task.</p>
+    <div class="steps">
+      <div class="step">
+        <h3>Install</h3>
+        <p>Paste one line, or download the app. It sets itself up and adds a launcher — that's it.</p>
+      </div>
+      <div class="step">
+        <h3>Pick model and workspace machines</h3>
+        <p>Use one laptop for both, or run the model on SSH while workspace tools stay local.</p>
+      </div>
+      <div class="step">
+        <h3>Give it a task</h3>
+        <p>Every Agent and Voice turn runs the tool-capable agent loop. Use Job when the work should keep running and be tracked.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="try" class="band alt">
+  <div class="wrap">
+    <h2>Try a task that proves it works</h2>
+    <p class="sectlede">Use a disposable repository first. Good tasks name the artifact and the command that verifies it.</p>
+    <div class="why">
+      <article class="lead">
+        <span class="ic">🧪</span>
+        <h3>Local code task</h3>
+        <p>“Inspect this repository, find the slowest test setup, make one safe latency improvement, run the focused test, and summarize the measured change.”</p>
+      </article>
+      <article>
+        <span class="ic">🖥️</span>
+        <h3>Remote model, local code</h3>
+        <p>Set Model machine to an SSH GPU and Workspace machine to Local. Ask: “Fix the first reproducible API failure and run its focused tests.”</p>
+      </article>
+      <article>
+        <span class="ic">⚡</span>
+        <h3>Parallel Job</h3>
+        <p>Draft “Add exponential-backoff retry with seeded deterministic tests.” Submit it locally, change Worker machine, and submit again. Compare both runs in History.</p>
+      </article>
+      <article>
+        <span class="ic">🎙️</span>
+        <h3>Voice task</h3>
+        <p>Say: “Read the project, run the smallest relevant test, fix the failure if there is one, and tell me exactly what changed.” Only the text transcript is saved.</p>
+      </article>
+    </div>
+  </div>
+</section>
+
+<section class="band alt">
+  <div class="wrap">
+    <h2>FAQ</h2>
+    <div class="faq">
+      <details><summary>How does Agent mode work?</summary><p>Every Agent and Voice turn uses the agent loop. It can inspect the chosen workspace, edit files, run commands, and show tool progress. Use a disposable folder while learning the controls.</p></details>
+      <details><summary>Is it really free? What's the catch?</summary><p>Yes — free and fully open source, with no account, no subscription, and no usage limits. There's no catch: the AI runs on hardware you already own, so there's nothing for us to bill you for. (If you choose to run very large models, you'll want a capable computer or a GPU server — that's the only cost, and it's yours.)</p></details>
+      <details><summary>What does History save?</summary><p>Agent text, Voice transcript text, and Job status/log output are stored on this device. Voice audio is not added to History. Delete one entry, one mode, or everything from Storage settings.</p></details>
+      <details><summary>How do I install it?</summary><p>One line on a published macOS or Linux platform: <code>curl -fsSL https://bowen-ai.github.io/agentica-releases/install.sh | bash</code>. It detects your OS/CPU, downloads the matching release asset, installs it, and adds an <code>agentica</code> launcher. On Windows 11, install WSL and run the same line inside Ubuntu with WSLg.</p></details>
+      <details><summary>Is the macOS app notarized?</summary><p>Not yet — it's an open-source, unsigned build. The installer strips the quarantine flag so it opens with no warning. If you download the&nbsp;.dmg by hand, right-click <b>Agentica → Open</b> the first time.</p></details>
+      <details><summary>Do I need API keys or a cloud account?</summary><p>No inference API or cloud account is required. Agentica runs open-weight models on your own hardware through Ollama, llama.cpp, or remote vLLM. Installing models uses their download hosts, and an agent task that explicitly uses a network tool contacts that tool's named service.</p></details>
+      <details><summary>How does local voice work?</summary><p>Silero VAD, Whisper speech-to-text, and Kokoro text-to-speech run on the desktop machine. Apple Silicon packages include MLX Whisper plus faster-Whisper fallback; Linux x64 uses faster-Whisper on CPU. Source installs add the same runtime with <code>pip install -e ".[voice]"</code> in agentica-core.</p></details>
+      <details><summary>Does it really work on SLURM / HPC clusters?</summary><p>Yes — verified end-to-end on USC CARC Discovery. It sbatches a GPU job that runs the agent loop on the node and syncs results back. Plain SSH GPU boxes work too.</p></details>
+      <details><summary>Which models can I use?</summary><p>Tool-capable Ollama tags or local GGUF files with llama.cpp, and Hugging Face model IDs on remote vLLM-capable targets — Llama, Qwen, Gemma, DeepSeek, GLM, gpt-oss, and more. A built-in fit check helps you size them to your GPUs (A100/L40S/A40/…).</p></details>
+      <details><summary>Can the model be remote while my code stays local?</summary><p>Yes. Set Model machine to an SSH GPU host and Workspace machine to Local. Only inference runs on the SSH machine; file and shell tools stay in the selected local folder. Point both selectors at the SSH host to use a remote checkout.</p></details>
+      <details><summary>Can I use it from VS Code?</summary><p>Yes — it serves an OpenAI-compatible <code>/v1</code> endpoint, so Continue/Cline and the OpenAI SDK work unchanged.</p></details>
+    </div>
+  </div>
+</section>
+
+<section class="finalcta">
+  <div class="wrap">
+    <h2>Get your own private AI — in one line.</h2>
+    <div class="cmd big"><code>curl -fsSL https://bowen-ai.github.io/agentica-releases/install.sh | bash</code><button class="copy" type="button" aria-label="Copy install command">Copy</button></div>
+    <p class="sub">macOS &amp; Linux (Windows via WSL) · open source · <a href="https://github.com/Bowen-AI/agentica-releases/releases/latest">all downloads</a> · <a href="https://github.com/Bowen-AI/agentica-core">source on GitHub</a></p>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap">
+    <span>Agentica <a class="app-version" href="https://github.com/Bowen-AI/agentica-releases/releases/latest">Latest release</a> · open source · runs on <a href="https://ollama.com">Ollama</a></span>
+    <span><a href="releases.html">Release notes</a> · <a href="https://github.com/Bowen-AI/Agentica">desktop source</a> · <a href="https://github.com/Bowen-AI/agentica-core">backend</a></span>
   </div>
 </footer>
 
-<script src="site.js"></script>
+<!-- Lightbox for full-size screenshots -->
+<div class="lightbox" id="lightbox" hidden>
+  <button class="lb-close" id="lbClose" aria-label="Close">✕</button>
+  <div class="lb-scroll"><img id="lbImg" src="" alt="" /></div>
+</div>
+
+<script defer src="site.js"></script>
 </body>
 </html>
