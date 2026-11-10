@@ -8,7 +8,7 @@ set -euo pipefail
 say() { printf '%s\n' "$*"; }
 die() { say "ERROR: $*" >&2; exit 1; }
 need() { command -v "$1" >/dev/null 2>&1 || die "Missing dependency: $1. Install it and run this installer again."; }
-for tool in curl uname mktemp awk sed df tar chmod mkdir cp mv tr; do need "$tool"; done
+for tool in curl uname mktemp awk sed df tar chmod mkdir cp mv tr dirname rm date grep sleep; do need "$tool"; done
 fetch() { curl --fail --location --retry 3 --connect-timeout 15 --max-time 1800 --progress-bar "$1" -o "$2"; }
 require_free_kb() {
   local available
@@ -25,8 +25,8 @@ else die 'Install shasum or sha256sum to verify downloads.'; fi
 os=$(uname -s); arch=$(uname -m)
 if [[ "$os" == Darwin && "$arch" == x86_64 ]] && [[ "$(sysctl -n sysctl.proc_translated 2>/dev/null || true)" == 1 ]]; then arch=arm64; fi
 case "$os:$arch" in
-  Darwin:arm64) asset=Agentica-mac-arm64.zip; default_model=qwen3.5:4b-mlx; need ditto ;;
-  Linux:x86_64|Linux:amd64) asset=Agentica-linux-x64.tar.gz; default_model=qwen3.5:4b; need ldd ;;
+  Darwin:arm64) asset=Agentica-mac-arm64.zip; default_model=qwen3.5:4b-mlx; need ditto; need open ;;
+  Linux:x86_64|Linux:amd64) asset=Agentica-linux-x64.tar.gz; default_model=qwen3.5:4b; need ldd; need gzip ;;
   *) die "No supported release for $os/$arch. Available: Apple Silicon macOS and Linux x64." ;;
 esac
 engine=${AGENTICA_ENGINE:-ollama}

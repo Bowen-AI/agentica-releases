@@ -52,7 +52,7 @@ class InstallerTests(unittest.TestCase):
         commands = self.root/'commands'; commands.mkdir()
         for name in ['curl','uname','df','ditto','ollama','llama-server','ldd','osascript','xattr','open','sysctl']:
             p=commands/name; p.write_text(f'#!{sys.executable}\n'+DISPATCH); p.chmod(0o755)
-        for name in ['mktemp','awk','sed','tar','chmod','mkdir','cp','mv','tr','shasum','sha256sum','dirname','rm','date','grep','sleep','cat']:
+        for name in ['mktemp','awk','sed','tar','gzip','chmod','mkdir','cp','mv','tr','shasum','sha256sum','dirname','rm','date','grep','sleep','cat']:
             binary=shutil.which(name)
             if binary: (commands/name).symlink_to(binary)
         self.env={**os.environ,'PATH':str(commands),'MOCK_ROOT':str(self.root),
