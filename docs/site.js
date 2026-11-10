@@ -3,6 +3,14 @@
   "use strict";
   var REPO = "Bowen-AI/agentica-releases";
 
+  // Keep static/Pages downloads self-contained. The Vercel deployment can use
+  // its existing counted redirect; the HTML remains usable without JavaScript.
+  if (location.hostname === "agenticaai.vercel.app") {
+    document.querySelectorAll('a[data-asset]').forEach(function (link) {
+      link.href = "/api/dl/" + encodeURIComponent(link.getAttribute("data-asset"));
+    });
+  }
+
   /* ---------- OS detection + platform tabs ---------- */
   function detectOS() {
     var d = (navigator.userAgentData && navigator.userAgentData.platform) || "";
