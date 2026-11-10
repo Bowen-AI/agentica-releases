@@ -1,0 +1,185 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Agentica — Release notes &amp; what's new</title>
+<meta name="description" content="What's new in Agentica — release notes for the open-source agent desktop: tool-using Chat and Voice, independent model/workspace machines, and tracked local, SSH, or SLURM Jobs." />
+<link rel="canonical" href="https://agenticaai.vercel.app/releases" />
+<meta name="theme-color" content="#0d1117" />
+<link rel="icon" type="image/png" href="favicon.png" />
+<link rel="apple-touch-icon" href="favicon.png" />
+<meta name="robots" content="index, follow" />
+<!-- Open Graph / Twitter -->
+<meta property="og:type" content="website" />
+<meta property="og:site_name" content="Agentica" />
+<meta property="og:title" content="Agentica — Release notes &amp; what's new" />
+<meta property="og:description" content="Release notes for Agentica, the free desktop app for private tool-using AI on hardware you own." />
+<meta property="og:url" content="https://agenticaai.vercel.app/releases" />
+<meta property="og:image" content="https://agenticaai.vercel.app/img/chat-agentic.png" />
+<meta name="twitter:card" content="summary_large_image" />
+<meta name="twitter:title" content="Agentica — Release notes &amp; what's new" />
+<meta name="twitter:description" content="Release notes for private agents, local voice, split model/workspace targets, and tracked Jobs." />
+<meta name="twitter:image" content="https://agenticaai.vercel.app/img/plan.png" />
+<link rel="stylesheet" href="style.css" />
+</head>
+<body>
+<header>
+  <div class="wrap nav">
+    <a class="logo" href="index.html">Agentica<span class="dot"></span></a>
+    <nav>
+      <a href="index.html#why">Why</a>
+      <a href="index.html#jobs">Jobs</a>
+      <a href="index.html#try">Try it</a>
+      <a href="index.html#how">How it works</a>
+      <a href="releases.html" aria-current="page">What's new</a>
+      <a href="https://github.com/Bowen-AI/Agentica">Source</a>
+      <a class="navdl" href="index.html#install">Install</a>
+    </nav>
+  </div>
+</header>
+
+<a id="top"></a>
+<section class="hero rel-hero">
+  <div class="wrap">
+    <div class="pill">📣 Release notes</div>
+    <h1>What's <span>new</span> in Agentica</h1>
+    <p class="lede">
+      Every release, in clear language: what the agent can do, where inference and tools run,
+      which packages support local voice, and how Jobs and History changed.
+    </p>
+    <div class="rel-actions">
+      <a class="btn primary" href="index.html#install">⬇ Install the latest</a>
+      <a class="btn" href="https://github.com/Bowen-AI/agentica-releases/releases">All releases on GitHub →</a>
+    </div>
+  </div>
+</section>
+
+<main class="wrap rel-wrap">
+  <ol class="rel-list" id="rel-list" aria-live="polite">
+    <li class="rel-loading" id="rel-loading">Loading release notes…</li>
+  </ol>
+  <noscript><p class="rel-fallback">Enable JavaScript, or see the full
+    <a href="https://github.com/Bowen-AI/agentica-releases/releases">release history on GitHub</a>.</p></noscript>
+  <p class="rel-foot">Looking for the source? It's all open —
+    <a href="https://github.com/Bowen-AI/Agentica">Agentica desktop</a> ·
+    <a href="https://github.com/Bowen-AI/agentica-core">agentica-core</a> ·
+    <a href="https://github.com/Bowen-AI/agentica-releases/releases">release archive</a>.</p>
+</main>
+
+<footer>
+  <div class="wrap">
+    <span>Agentica <a class="app-version" href="https://github.com/Bowen-AI/agentica-releases/releases/latest">Latest release</a> · open source · runs on <a href="https://ollama.com">Ollama</a></span>
+    <span><a href="index.html">← Home</a> · <a href="https://github.com/Bowen-AI/Agentica">desktop source</a> · <a href="https://github.com/Bowen-AI/agentica-core">backend</a></span>
+  </div>
+</footer>
+
+<script>
+/* Release-notes page — renders the GitHub release notes for Bowen-AI/agentica-releases.
+   Single source of truth: the GitHub release body (markdown). Self-updates each release. */
+(function () {
+  "use strict";
+  var REPO = "Bowen-AI/agentica-releases";
+  var SENT = String.fromCharCode(0); // sentinel that cannot occur in release text
+  var listEl = document.getElementById("rel-list");
+
+  /* --- tiny, dependency-free markdown renderer (headings, bold, code, lists, links, quotes, hr) --- */
+  function esc(s) { return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;"); }
+  function inl(s) {
+    var codes = [];
+    s = s.replace(/`([^`]+)`/g, function (m, c) { codes.push(c); return SENT + (codes.length - 1) + SENT; });
+    s = esc(s);
+    s = s.replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>");
+    s = s.replace(/\[([^\]]+)\]\(([^)\s]+)\)/g,
+      function (m, t, u) { return '<a href="' + u + '" rel="noopener" target="_blank">' + t + "</a>"; });
+    s = s.replace(new RegExp(SENT + "(\\d+)" + SENT, "g"),
+      function (m, n) { return "<code>" + esc(codes[+n]) + "</code>"; });
+    return s;
+  }
+  function mdToHtml(md) {
+    var lines = (md || "").replace(/\r\n?/g, "\n").split("\n");
+    var out = [], i = 0;
+    function li(rx) {
+      var items = [];
+      while (i < lines.length && rx.test(lines[i])) { items.push("<li>" + inl(lines[i].replace(rx, "")) + "</li>"); i++; }
+      return items.join("");
+    }
+    while (i < lines.length) {
+      var line = lines[i];
+      if (/^```/.test(line)) {
+        var buf = []; i++;
+        while (i < lines.length && !/^```/.test(lines[i])) { buf.push(lines[i]); i++; }
+        i++; out.push("<pre><code>" + esc(buf.join("\n")) + "</code></pre>"); continue;
+      }
+      var h = line.match(/^(#{1,6})\s+(.*)$/);
+      if (h) { var lv = h[1].length; out.push("<h" + lv + ">" + inl(h[2]) + "</h" + lv + ">"); i++; continue; }
+      if (/^\s*([-*_])\1\1+\s*$/.test(line)) { out.push("<hr>"); i++; continue; }
+      if (/^>\s?/.test(line)) {
+        var q = [];
+        while (i < lines.length && /^>\s?/.test(lines[i])) { q.push(lines[i].replace(/^>\s?/, "")); i++; }
+        out.push("<blockquote>" + mdToHtml(q.join("\n")) + "</blockquote>"); continue;
+      }
+      if (/^\s*[-*+]\s+/.test(line)) { out.push("<ul>" + li(/^\s*[-*+]\s+/) + "</ul>"); continue; }
+      if (/^\s*\d+\.\s+/.test(line)) { out.push("<ol>" + li(/^\s*\d+\.\s+/) + "</ol>"); continue; }
+      if (/^\s*$/.test(line)) { i++; continue; }
+      var p = [];
+      while (i < lines.length && !/^\s*$/.test(lines[i]) && !/^(#{1,6})\s/.test(lines[i]) &&
+             !/^```/.test(lines[i]) && !/^>\s?/.test(lines[i]) &&
+             !/^\s*[-*+]\s+/.test(lines[i]) && !/^\s*\d+\.\s+/.test(lines[i])) { p.push(lines[i]); i++; }
+      out.push("<p>" + inl(p.join(" ")) + "</p>");
+    }
+    return out.join("\n");
+  }
+
+  function fmtDate(iso) {
+    try { return new Date(iso).toLocaleDateString(undefined, { year: "numeric", month: "long", day: "numeric" }); }
+    catch (e) { return ""; }
+  }
+  function platforms(assets) {
+    var has = function (re) { for (var i = 0; i < assets.length; i++) if (re.test(assets[i].name)) return true; return false; };
+    var out = [];
+    if (has(/mac-arm64/)) out.push("macOS · Apple Silicon");
+    if (has(/mac-x64/)) out.push("macOS · Intel");
+    if (has(/linux-x64/)) out.push("Linux · x64");
+    return out;
+  }
+
+  function render(rels) {
+    var pub = [];
+    for (var i = 0; i < rels.length; i++) if (!rels[i].draft) pub.push(rels[i]);
+    if (!pub.length) { listEl.innerHTML = '<li class="rel-loading">No releases published yet.</li>'; return; }
+    var html = "";
+    for (var j = 0; j < pub.length; j++) {
+      var r = pub[j];
+      var latest = j === 0;
+      var body = (r.body && r.body.trim()) ? mdToHtml(r.body) : '<p class="rel-nobody">No notes for this release.</p>';
+      var plats = platforms(r.assets || []);
+      html +=
+        '<li class="rel-card' + (latest ? " latest" : "") + '" id="' + esc(r.tag_name) + '">' +
+          '<div class="rel-head">' +
+            '<a class="rel-tag" href="' + r.html_url + '" rel="noopener" target="_blank">' + esc(r.tag_name) + "</a>" +
+            (latest ? '<span class="rel-badge">Latest</span>' : "") +
+            '<span class="rel-date">' + fmtDate(r.published_at || r.created_at) + "</span>" +
+          "</div>" +
+          (r.name && r.name !== r.tag_name ? '<h2 class="rel-name">' + esc(r.name) + "</h2>" : "") +
+          '<div class="rel-body">' + body + "</div>" +
+          (plats.length ? '<div class="rel-plats">' + plats.map(function (p) { return '<span class="rel-plat">' + p + "</span>"; }).join("") +
+            ' <a class="rel-dl" href="index.html#install">Install →</a></div>' : "") +
+        "</li>";
+    }
+    listEl.innerHTML = html;
+  }
+
+  fetch("https://api.github.com/repos/" + REPO + "/releases?per_page=100",
+    { headers: { Accept: "application/vnd.github+json" }, cache: "no-store" })
+    .then(function (r) { if (!r.ok) throw new Error("http " + r.status); return r.json(); })
+    .then(function (rels) { if (!rels || !rels.length) throw new Error("empty"); render(rels); })
+    .catch(function () {
+      listEl.innerHTML =
+        '<li class="rel-loading">Couldn\'t load release notes right now — see the full ' +
+        '<a href="https://github.com/' + REPO + '/releases">release history on GitHub</a>.</li>';
+    });
+})();
+</script>
+</body>
+</html>
